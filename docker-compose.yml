@@ -1,0 +1,48 @@
+services:
+  spider:
+    build:
+      context: ./tools/spider
+      dockerfile: Dockerfile
+    container_name: spider-api
+    ports:
+      - "8000:8000"
+    environment:
+      - SPIDER_HOME=/app/spider_tool
+      - PYTHONPATH=/app
+    volumes:
+      - spider_data:/app/spider_tool/output
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/v1/spider/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    networks:
+      - bioinformatics_network
+
+  # Future tools can be added here following the same pattern:
+  # tool_name:
+  #   build:
+  #     context: ./tools/tool_name
+  #     dockerfile: Dockerfile
+  #   container_name: tool_name-api
+  #   ports:
+  #     - "8001:8000"  # Use different ports for each tool
+  #   environment:
+  #     - TOOL_HOME=/app/tool_name
+  #   volumes:
+  #     - tool_name_data:/app/tool_name/output
+  #   restart: unless-stopped
+  #   networks:
+  #     - bioinformatics_network
+
+volumes:
+  spider_data:
+    driver: local
+  # tool_name_data:
+  #   driver: local
+
+networks:
+  bioinformatics_network:
+    driver: bridge 
