@@ -69,12 +69,13 @@ class SpiderService:
         """Run SPIDER prediction on the provided FASTA file"""
         try:
             # Copy input file to SPIDER input directory
-            input_file = self.input_path / "seq.fasta"
-            shutil.copy2(fasta_file_path, input_file)
+            input_fpath = self.input_path.joinpath("seq.fasta")
+            shutil.copy2(fasta_file_path, input_fpath)
             
             # Debug: Check what was written to the file
-            with open(input_file, "r", encoding="utf-8") as f:
+            with open(input_fpath, "r", encoding="utf-8") as f:
                 file_content = f.read()
+                self.logger.info("Input file path: %s", input_fpath)
                 self.logger.info("File content written to SPIDER input: %s", file_content)
                 self.logger.info("File size: %d bytes", len(file_content))
 
@@ -84,6 +85,11 @@ class SpiderService:
 
             # Run SPIDER
             self.logger.info("Starting SPIDER prediction...")
+            self.logger.info("SPIDER home: %s", self.spider_home)
+            self.logger.info("SPIDER input path: %s", self.input_path)
+            self.logger.info("SPIDER output path: %s", self.output_path)
+            self.logger.info("SPIDER model path: %s", self.model_path)
+            self.logger.info("SPIDER input file: %s", input_fpath)
             result = subprocess.run(
                 ["python", "spider.py"],
                 capture_output=True,
@@ -101,20 +107,22 @@ class SpiderService:
                 return False, error_msg, []
 
             # Read results
-            output_file = self.output_path / "predicted_result.csv"
-            if not output_file.exists():
+            output_fpath = self.output_path.joinpath("predict_result.csv")
+            if not output_fpath.exists():
                 error_msg = "SPIDER did not generate output file"
                 self.logger.error(error_msg)
                 return False, error_msg, []
 
+            self.logger.info("SPIDER output file: %s", output_fpath)
+            self.logger.info("SPIDER output file content: %s", output_fpath.read_text())
             # Parse results
-            results = self._parse_spider_results(output_file)
+            results = self._parse_spider_results(output_fpath)
 
             # Clean up
-            if input_file.exists():
-                input_file.unlink()
-            if output_file.exists():
-                output_file.unlink()
+            if input_fpath.exists():
+                input_fpath.unlink()
+            if output_fpath.exists():
+                output_fpath.unlink()
 
             return True, "Prediction completed successfully", results
 
@@ -123,14 +131,14 @@ class SpiderService:
             self.logger.error(error_msg)
             return False, error_msg, []
         except Exception as e:
-            error_msg = f"Error running SPIDER: {str(e)}"
+            error_msg = f"Error running SPIDER: {str(e)}, {e.__traceback__}"
             self.logger.error(error_msg)
             return False, error_msg, []
 
     def _parse_spider_results(self, output_file: Path) -> PredictionResult:
         """Parse SPIDER output CSV file into structured results"""
         try:
-            output = output_file.read_text()
+            output = output_file.read_text().strip()
             output = output.split('\n')
             if len(output) > 1:
                 raise ValueError("SPIDER output contains multiple lines")
