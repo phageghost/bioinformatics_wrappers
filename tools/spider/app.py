@@ -81,7 +81,7 @@ async def predict_druggable_proteins(sequence: str):
     with tempfile.NamedTemporaryFile(delete=False, suffix=".fasta") as temp_file:
         try:
             # Create FASTA format content - ensure sequence is on a single line
-            fasta_content = f">sequence\n{sequence.strip()}"
+            fasta_content = f">sequence\n{sequence.strip()}\n"
             # Write FASTA content to temporary file
             temp_file.write(fasta_content.encode("utf-8"))
             temp_file.flush()
@@ -94,7 +94,7 @@ async def predict_druggable_proteins(sequence: str):
                 )
 
             # Run SPIDER prediction
-            success, message, results = spider_service.run_spider_prediction(
+            success, message, result = spider_service.run_spider_prediction(
                 Path(temp_file.name)
             )
 
@@ -108,8 +108,7 @@ async def predict_druggable_proteins(sequence: str):
             return PredictionResponse(
                 status="success",
                 message=message,
-                results=results,
-                total_sequences=len(results),
+                result=result,
                 processing_time=round(processing_time, 2),
                 timestamp=datetime.now(),
             )
