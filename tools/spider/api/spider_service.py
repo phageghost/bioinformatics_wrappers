@@ -83,7 +83,7 @@ class SpiderService:
             original_cwd = os.getcwd()
             os.chdir(self.spider_home)
 
-            # Run SPIDER
+            # Run SPIDER using micromamba in the 'spider' conda environment
             self.logger.info("Starting SPIDER prediction...")
             self.logger.info("SPIDER home: %s", self.spider_home)
             self.logger.info("SPIDER input path: %s", self.input_path)
@@ -91,7 +91,7 @@ class SpiderService:
             self.logger.info("SPIDER model path: %s", self.model_path)
             self.logger.info("SPIDER input file: %s", input_fpath)
             result = subprocess.run(
-                ["python", "spider.py"],
+                ['micromamba', 'run', '-n', 'spider', 'python', 'spider.py'],
                 capture_output=True,
                 text=True,
                 timeout=300,  # 5 minute timeout
