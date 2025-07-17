@@ -1,12 +1,17 @@
-import os
-import time
+#!/usr/bin/env python3
+"""Combined FastAPI and FastMCP server"""
+
+import asyncio
+import logging
 import tempfile
+import os
 from pathlib import Path
 from datetime import datetime
 
 from fastapi import FastAPI, HTTPException, status
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
+import uvicorn
 
 # Try to import MCP server
 try:
@@ -20,6 +25,9 @@ except ImportError as e:
 
 from api.models import HealthResponse, PredictionResponse
 from api.spider_service import SpiderService
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 # Initialize FastAPI app
 app = FastAPI(
@@ -51,8 +59,6 @@ if MCP_AVAILABLE:
         instructions="SPIDER: Stacking-based ensemble learning framework for accurate prediction of druggable proteins"
     )
     print("FastMCP server initialized successfully")
-else:
-    print("MCP is not available")
     
     # Add tools to MCP server
     @mcp_server.tool(
@@ -114,18 +120,10 @@ SPIDER Tool Information:
 - Output Format: {tool_info.get('output_format', 'Unknown')}
 """
         return [TextContent(type="text", text=info_text)]
-
-# Mount MCP server if available
-if MCP_AVAILABLE and mcp_server:
-    print("Creating MCP streamable HTTP app...")
-    mcp_app = mcp_server.streamable_http_app()
-    print("Mounting MCP app to /mcp...")
-    app.mount("/mcp", mcp_app)
-    print("MCP server mounted at /mcp")
 else:
-    print("MCP server not available - running REST API only")
+    print("MCP is not available")
 
-
+# FastAPI routes
 @app.get("/", response_model=dict)
 async def root():
     """Root endpoint with API information"""
@@ -136,7 +134,6 @@ async def root():
         "health": "/api/v1/spider/health",
     }
 
-
 @app.get("/api/v1/spider/health", response_model=HealthResponse)
 async def health_check():
     """Health check endpoint"""
@@ -144,12 +141,10 @@ async def health_check():
         status="healthy", timestamp=datetime.now(), tool="SPIDER", version="1.0.0"
     )
 
-
 @app.get("/api/v1/spider/info", response_model=dict)
 async def get_tool_info():
     """Get information about the SPIDER tool"""
     return spider_service.get_tool_info()
-
 
 @app.post("/api/v1/spider/predict", response_model=PredictionResponse)
 async def predict_druggable_proteins(sequence: str):
@@ -162,7 +157,7 @@ async def predict_druggable_proteins(sequence: str):
     Returns:
         Prediction results with label and probability
     """
-    start_time = time.time()
+    start_time = datetime.now()
 
     # Validate file
     if not sequence:
@@ -196,7 +191,7 @@ async def predict_druggable_proteins(sequence: str):
                     status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=message
                 )
 
-            processing_time = time.time() - start_time
+            processing_time = (datetime.now() - start_time).total_seconds()
 
             return PredictionResponse(
                 status="success",
@@ -211,7 +206,6 @@ async def predict_druggable_proteins(sequence: str):
             if os.path.exists(temp_file.name):
                 os.unlink(temp_file.name)
 
-
 @app.exception_handler(HTTPException)
 async def http_exception_handler(_, exc):
     """Custom exception handler for HTTP errors"""
@@ -224,7 +218,6 @@ async def http_exception_handler(_, exc):
             "timestamp": datetime.now().isoformat(),
         },
     )
-
 
 @app.exception_handler(Exception)
 async def general_exception_handler(_, exc):
@@ -239,8 +232,18 @@ async def general_exception_handler(_, exc):
         },
     )
 
+async def run_combined_server():
+    """Run both FastAPI and FastMCP servers"""
+    if MCP_AVAILABLE and mcp_server:
+        print("Starting combined FastAPI and FastMCP servers...")
+        # Run both servers concurrently
+        await asyncio.gather(
+            uvicorn.run(app, host="0.0.0.0", port=8000, log_level="info"),
+            mcp_server.run_streamable_http_async(host="0.0.0.0", port=8001)
+        )
+    else:
+        print("Starting FastAPI server only...")
+        await uvicorn.run(app, host="0.0.0.0", port=8000, log_level="info")
 
 if __name__ == "__main__":
-    import uvicorn
-
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    asyncio.run(run_combined_server()) 

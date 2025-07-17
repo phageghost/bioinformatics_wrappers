@@ -6,7 +6,8 @@ services:
     container_name: spider-api
     ports:
       - "8000:8000"  # REST API
-    command: micromamba run -n api python combined_server.py
+      - "8001:8001"  # MCP Streamable HTTP
+    command: micromamba run -n api python combined_fastapi_mcp.py
     environment:
       - SPIDER_HOME=/app/spider_tool
       - PYTHONPATH=/app
