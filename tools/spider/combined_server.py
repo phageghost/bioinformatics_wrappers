@@ -27,10 +27,10 @@ logger = logging.getLogger(__name__)
 class CombinedServer:
     """Server that can run both REST API and MCP server"""
     
-    def __init__(self, rest_port: int = 8000, enable_mcp: bool = True, mcp_websocket: bool = False, mcp_host: str = "0.0.0.0", mcp_port: int = 81):
+    def __init__(self, rest_port: int = 8000, enable_mcp: bool = True, mcp_streamable_http: bool = False, mcp_host: str = "0.0.0.0", mcp_port: int = 81):
         self.rest_port = rest_port
         self.enable_mcp = enable_mcp and MCP_AVAILABLE
-        self.mcp_websocket = mcp_websocket
+        self.mcp_streamable_http = mcp_streamable_http
         self.mcp_host = mcp_host
         self.mcp_port = mcp_port
         self.rest_process: Optional[multiprocessing.Process] = None
@@ -62,8 +62,8 @@ class CombinedServer:
         
         def run_mcp_server():
             try:
-                if self.mcp_websocket:
-                    asyncio.run(SpiderMCPServer().run_websocket(self.mcp_host, self.mcp_port))
+                if self.mcp_streamable_http:
+                    asyncio.run(SpiderMCPServer().run_streamable_http(self.mcp_host, self.mcp_port))
                 else:
                     asyncio.run(SpiderMCPServer().run_stdio())
             except KeyboardInterrupt:
@@ -71,8 +71,8 @@ class CombinedServer:
         
         self.mcp_process = multiprocessing.Process(target=run_mcp_server)
         self.mcp_process.start()
-        if self.mcp_websocket:
-            logger.info(f"MCP WebSocket server started on ws://{self.mcp_host}:{self.mcp_port}")
+        if self.mcp_streamable_http:
+            logger.info(f"MCP Streamable HTTP server started on http://{self.mcp_host}:{self.mcp_port}")
         else:
             logger.info("MCP stdio server started")
     
@@ -89,8 +89,8 @@ class CombinedServer:
             logger.info("Combined server started successfully")
             logger.info(f"REST API available at: http://localhost:{self.rest_port}")
             if self.enable_mcp:
-                if self.mcp_websocket:
-                    logger.info(f"MCP WebSocket available at: ws://localhost:{self.mcp_port}")
+                if self.mcp_streamable_http:
+                    logger.info(f"MCP Streamable HTTP available at: http://localhost:{self.mcp_port}")
                 else:
                     logger.info("MCP server available via stdio")
             else:
@@ -146,20 +146,20 @@ def main():
         help="Run only MCP server"
     )
     parser.add_argument(
-        "--mcp-websocket",
+        "--mcp-streamable-http",
         action="store_true",
-        help="Run MCP server over WebSocket instead of stdio"
+        help="Run MCP server over Streamable HTTP instead of stdio"
     )
     parser.add_argument(
         "--mcp-host",
         default="0.0.0.0",
-        help="MCP WebSocket host (default: 0.0.0.0)"
+        help="MCP Streamable HTTP host (default: 0.0.0.0)"
     )
     parser.add_argument(
         "--mcp-port",
         type=int,
         default=8001,
-        help="MCP WebSocket port (default: 8001)"
+        help="MCP Streamable HTTP port (default: 8001)"
     )
     
     args = parser.parse_args()
@@ -174,8 +174,8 @@ def main():
             logger.error("MCP server not available - MCP package not installed")
             sys.exit(1)
         logger.info("Starting MCP server only")
-        if args.mcp_websocket:
-            asyncio.run(SpiderMCPServer().run_websocket(args.mcp_host, args.mcp_port))
+        if args.mcp_streamable_http:
+            asyncio.run(SpiderMCPServer().run_streamable_http(args.mcp_host, args.mcp_port))
         else:
             asyncio.run(SpiderMCPServer().run_stdio())
     else:
@@ -183,7 +183,7 @@ def main():
         server = CombinedServer(
             rest_port=args.port, 
             enable_mcp=True, 
-            mcp_websocket=args.mcp_websocket,
+            mcp_streamable_http=args.mcp_streamable_http,
             mcp_host=args.mcp_host,
             mcp_port=args.mcp_port
         )
