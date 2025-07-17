@@ -45,6 +45,7 @@ RUN micromamba create -n spider python=3.9 -y && \
 COPY api/ ./api/
 COPY app.py .
 COPY combined_server.py .
+COPY combined_fastapi_mcp.py .
 
 # Create necessary directories
 RUN mkdir -p /app/spider_tool/input /app/spider_tool/output
