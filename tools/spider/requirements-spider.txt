@@ -1,0 +1,6 @@
+# SPIDER virtual environment requirements (Python 3.9)
+scikit-learn==0.24.1
+numpy==1.21.6
+pandas==1.5.3
+scipy==1.7.0
+biopython==1.80 

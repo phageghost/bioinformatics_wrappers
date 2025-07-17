@@ -1,11 +1,7 @@
-# python==3.12.4
-fastapi==0.104.1
-uvicorn==0.24.0
-python-multipart==0.0.6
-pydantic==2.5.0
-scikit-learn==0.24.1
-numpy==1.21.6
-pandas==1.5.3
-scipy==1.7.0
-biopython==1.80
-aiofiles==23.2.1 
+# Base environment requirements (Python 3.12+)
+fastapi
+uvicorn
+python-multipart
+pydantic
+aiofiles
+mcp==1.11.0

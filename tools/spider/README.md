@@ -4,11 +4,12 @@ RESTful API wrapper for SPIDER: Stacking-based ensemble learning framework for a
 
 ## Overview
 
-SPIDER is a machine learning tool that predicts whether proteins are druggable based on their amino acid sequences. This wrapper provides a RESTful API interface to make SPIDER easily accessible for agentic workflows.
+SPIDER is a machine learning tool that predicts whether proteins are druggable based on their amino acid sequences. This wrapper provides both a RESTful API interface and MCP (Model Context Protocol) support to make SPIDER easily accessible for agentic workflows.
 
 ## Features
 
 - **RESTful API**: Standardized HTTP endpoints for easy integration
+- **MCP Support**: Model Context Protocol for AI agent integration
 - **File Upload**: Accept FASTA format protein sequence files
 - **Validation**: Automatic FASTA format validation
 - **Structured Output**: JSON responses with prediction results
@@ -167,6 +168,118 @@ Error response format:
 }
 ```
 
+## MCP (Model Context Protocol) Support
+
+The SPIDER service also supports the Model Context Protocol (MCP), enabling integration with AI agents and assistants. The service uses a dual-environment setup:
+
+- **Base Environment (Python 3.12)**: Runs the REST API and MCP server
+- **Virtual Environment (Python 3.9)**: Runs SPIDER with its specific dependencies
+
+### MCP Tools Available
+
+1. **predict_druggability**: Predict druggability of a protein sequence
+   - Input: `{"sequence": "MKTVRQERLKSIVRILERSKEPVSGAQLAEELSVSRQVIVQDIAYLRSLGYNIVATPRGYVLAGG"}`
+   - Output: Prediction results with status, prediction, and probability
+
+2. **get_tool_info**: Get information about the SPIDER tool
+   - Input: `{}`
+   - Output: Tool information including name, version, and description
+
+### Running MCP Server
+
+#### Standalone MCP Server
+```bash
+# Run only MCP server
+python combined_server.py --mcp-only
+```
+
+#### Combined Server (REST + MCP)
+```bash
+# Run both REST API and MCP server
+python combined_server.py
+
+# Run with custom port
+python combined_server.py --port 8001
+```
+
+#### REST API Only
+```bash
+# Run only REST API server
+python combined_server.py --rest-only
+```
+
+### MCP Client Example
+
+```python
+import asyncio
+from mcp.client import ClientSession, StdioServerParameters
+from mcp.client.stdio import stdio_client
+
+async def main():
+    server_params = StdioServerParameters(
+        command="python",
+        args=["-m", "api.mcp_server"]
+    )
+    
+    async with stdio_client(server_params) as (read, write):
+        async with ClientSession(read, write) as session:
+            # Initialize session
+            await session.initialize(
+                protocol_version="2024-11-05",
+                client_info={"name": "spider-client", "version": "1.0.0"},
+                capabilities={}
+            )
+            
+            # Predict druggability
+            result = await session.call_tool("predict_druggability", {
+                "sequence": "MKTVRQERLKSIVRILERSKEPVSGAQLAEELSVSRQVIVQDIAYLRSLGYNIVATPRGYVLAGG"
+            })
+            
+            if result.content:
+                print(result.content[0].text)
+
+asyncio.run(main())
+```
+
+### MCP Configuration
+
+For MCP clients, use the configuration in `mcp_config.json`:
+
+```json
+{
+  "mcpServers": {
+    "spider-bioinformatics": {
+      "command": "python",
+      "args": ["-m", "api.mcp_server"],
+      "env": {
+        "PYTHONPATH": "/app",
+        "SPIDER_HOME": "/app/spider_tool"
+      }
+    }
+  }
+}
+```
+
+### Docker with MCP
+
+To run the container with MCP support:
+
+```bash
+# Build and run with combined server
+docker build -t spider-api .
+docker run -p 8000:8000 spider-api python combined_server.py
+
+# Or run MCP only
+docker run spider-api python combined_server.py --mcp-only
+
+# Or run REST API only
+docker run -p 8000:8000 spider-api python combined_server.py --rest-only
+```
+
+The Docker container uses a dual-environment setup:
+- Python 3.12 base environment for the API and MCP server
+- Python 3.9 virtual environment for SPIDER dependencies
+
 ## Docker Usage
 
 ### Build and Run
@@ -238,4 +351,4 @@ docker logs <container_id>
 
 ## License
 
-This wrapper is licensed under the MIT License. The underlying SPIDER tool has its own license. 
+This wrapper is licensed under the MIT License. The underlying SPIDER tool has its own license.

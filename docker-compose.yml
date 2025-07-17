@@ -5,7 +5,9 @@ services:
       dockerfile: Dockerfile
     container_name: spider-api
     ports:
-      - "8000:8000"
+      - "8000:8000"  # REST API
+      - "8001:8001"  # MCP WebSocket (new port)
+    command: micromamba run -n api python combined_server.py --mcp-websocket
     environment:
       - SPIDER_HOME=/app/spider_tool
       - PYTHONPATH=/app
@@ -45,4 +47,4 @@ volumes:
 
 networks:
   bioinformatics_network:
-    driver: bridge 
+    driver: bridge
