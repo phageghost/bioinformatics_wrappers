@@ -222,13 +222,12 @@ async def main():
     )
     
     async with stdio_client(server_params) as (read, write):
-        async with ClientSession(read, write) as session:
-            # Initialize session
-            await session.initialize(
-                protocol_version="2024-11-05",
-                client_info={"name": "spider-client", "version": "1.0.0"},
-                capabilities={}
-            )
+        async with ClientSession(read, write, client_info={
+            'name': 'spider-client',
+            'version': '1.0.0'
+        }) as session:
+            # Initialize session (no arguments in MCP 1.11.0)
+            await session.initialize()  # No arguments
             
             # Predict druggability
             result = await session.call_tool("predict_druggability", {

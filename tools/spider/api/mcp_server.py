@@ -13,11 +13,10 @@ from mcp.server.models import InitializationOptions
 from mcp.server.stdio import stdio_server
 from mcp.server.streamable_http import StreamableHTTPServerTransport
 from mcp.types import (
-    CallToolResult,
-    ListToolsResult,
     Tool,
     TextContent,
 )
+from mcp.server.lowlevel.server import NotificationOptions
 
 from .spider_service import SpiderService
 
@@ -33,37 +32,37 @@ class SpiderMCPServer:
 
     def _setup_handlers(self):
         @self.server.list_tools()
-        async def handle_list_tools() -> ListToolsResult:
-            return ListToolsResult(
-                tools=[
-                    Tool(
-                        name='predict_druggability',
-                        description='Predict druggability of a protein sequence using SPIDER',
-                        inputSchema={
-                            'type': 'object',
-                            'properties': {
-                                'sequence': {
-                                    'type': 'string',
-                                    'description': 'Protein sequence to analyze'
-                                }
-                            },
-                            'required': ['sequence']
-                        }
-                    ),
-                    Tool(
-                        name='get_tool_info',
-                        description='Get information about the SPIDER tool',
-                        inputSchema={
-                            'type': 'object',
-                            'properties': {},
-                            'required': []
-                        }
-                    )
-                ]
-            )
+        async def handle_list_tools():
+            return [
+                Tool(
+                    name='predict_druggability',
+                    title='Predict Druggability',
+                    description='Predict druggability of a protein sequence using SPIDER',
+                    inputSchema={
+                        'type': 'object',
+                        'properties': {
+                            'sequence': {
+                                'type': 'string',
+                                'description': 'Protein sequence to analyze'
+                            }
+                        },
+                        'required': ['sequence']
+                    }
+                ),
+                Tool(
+                    name='get_tool_info',
+                    title='Get Tool Info',
+                    description='Get information about the SPIDER tool',
+                    inputSchema={
+                        'type': 'object',
+                        'properties': {},
+                        'required': []
+                    }
+                )
+            ]
 
         @self.server.call_tool()
-        async def handle_call_tool(name: str, arguments: Dict[str, Any]) -> CallToolResult:
+        async def handle_call_tool(name: str, arguments: Dict[str, Any]):
             try:
                 if name == 'predict_druggability':
                     return await self._handle_predict_druggability(arguments)
@@ -73,17 +72,14 @@ class SpiderMCPServer:
                     raise ValueError(f'Unknown tool: {name}')
             except Exception as e:
                 logger.error('Error in tool call %s: %s', name, str(e))
-                return CallToolResult(
-                    content=[
-                        TextContent(
-                            type='text',
-                            text=f'Error: {str(e)}'
-                        )
-                    ],
-                    isError=True
-                )
+                return [
+                    TextContent(
+                        type='text',
+                        text=f'Error: {str(e)}'
+                    )
+                ]
 
-    async def _handle_predict_druggability(self, arguments: Dict[str, Any]) -> CallToolResult:
+    async def _handle_predict_druggability(self, arguments: Dict[str, Any]):
         sequence = arguments.get('sequence')
         if not sequence:
             raise ValueError('Sequence is required')
@@ -110,19 +106,17 @@ SPIDER Prediction Results:
 - Probability: {probability}
 - Message: {message}
 """
-                return CallToolResult(
-                    content=[
-                        TextContent(
-                            type='text',
-                            text=result_text
-                        )
-                    ]
-                )
+                return [
+                    TextContent(
+                        type='text',
+                        text=result_text
+                    )
+                ]
             finally:
                 if os.path.exists(temp_file.name):
                     os.unlink(temp_file.name)
 
-    async def _handle_get_tool_info(self, arguments: Dict[str, Any]) -> CallToolResult:
+    async def _handle_get_tool_info(self, arguments: Dict[str, Any]):
         tool_info = self.spider_service.get_tool_info()
         info_text = f"""
 SPIDER Tool Information:
@@ -132,14 +126,12 @@ SPIDER Tool Information:
 - Input Format: {tool_info.get('input_format', 'Unknown')}
 - Output Format: {tool_info.get('output_format', 'Unknown')}
 """
-        return CallToolResult(
-            content=[
-                TextContent(
-                    type='text',
-                    text=info_text
-                )
-            ]
-        )
+        return [
+            TextContent(
+                type='text',
+                text=info_text
+            )
+        ]
 
     async def run_stdio(self):
         async with stdio_server() as (read_stream, write_stream):
@@ -150,7 +142,7 @@ SPIDER Tool Information:
                     server_name='spider-bioinformatics',
                     server_version='1.0.0',
                     capabilities=self.server.get_capabilities(
-                        notification_options=None,
+                        notification_options=NotificationOptions(),
                         experimental_capabilities={},
                     ),
                 ),
@@ -167,7 +159,7 @@ SPIDER Tool Information:
                     server_name='spider-bioinformatics',
                     server_version='1.0.0',
                     capabilities=self.server.get_capabilities(
-                        notification_options=None,
+                        notification_options=NotificationOptions(),  # Use an empty NotificationOptions object
                         experimental_capabilities={},
                     ),
                 ),

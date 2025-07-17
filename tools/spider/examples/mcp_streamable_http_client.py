@@ -13,16 +13,12 @@ logger = logging.getLogger(__name__)
 async def main():
     """Test the SPIDER MCP Streamable HTTP server"""
     async with streamablehttp_client(url='http://localhost:8001') as (read, write, get_session_id):
-        async with ClientSession(read, write) as session:
-            # Initialize the session
-            await session.initialize(
-                protocol_version='2024-11-05',
-                client_info={
-                    'name': 'spider-streamable-http-test-client',
-                    'version': '1.0.0'
-                },
-                capabilities={}
-            )
+        async with ClientSession(read, write, client_info={
+            'name': 'spider-streamable-http-test-client',
+            'version': '1.0.0'
+        }) as session:
+            # Initialize the session (no arguments in MCP 1.11.0)
+            await session.initialize()
             logger.info('Connected to SPIDER MCP Streamable HTTP server')
             # List available tools
             tools = await session.list_tools()
