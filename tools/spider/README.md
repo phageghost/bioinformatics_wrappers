@@ -1,25 +1,28 @@
 # SPIDER API Wrapper
 
-RESTful API wrapper for SPIDER: Stacking-based ensemble learning framework for accurate prediction of druggable proteins.
+RESTful API and MCP-like endpoint wrapper for SPIDER: Stacking-based ensemble learning framework for accurate prediction of druggable proteins.
 
-## Overview
+## 🚀 Overview
 
-SPIDER is a machine learning tool that predicts whether proteins are druggable based on their amino acid sequences. This wrapper provides both a RESTful API interface and MCP (Model Context Protocol) support to make SPIDER easily accessible for agentic workflows.
+SPIDER is a machine learning tool that predicts whether proteins are druggable based on their amino acid sequences. This wrapper provides both a RESTful API interface and MCP-like endpoints to make SPIDER easily accessible for agentic workflows and AI applications.
 
-## Features
+## ✨ Features
 
 - **RESTful API**: Standardized HTTP endpoints for easy integration
-- **MCP Support**: Model Context Protocol for AI agent integration
-- **File Upload**: Accept FASTA format protein sequence files
-- **Validation**: Automatic FASTA format validation
+- **MCP-like Endpoints**: AI agent-friendly interface following MCP patterns
+- **Sequence Input**: Accept protein sequences directly via API
+- **Validation**: Automatic sequence format validation
 - **Structured Output**: JSON responses with prediction results
 - **Error Handling**: Comprehensive error handling and logging
 - **Health Checks**: Built-in health monitoring
 - **Docker Support**: Containerized for easy deployment
+- **Single Port**: Both REST and MCP-like endpoints on port 8000
 
-## API Endpoints
+## 🔌 API Endpoints
 
-### Health Check
+### REST API Endpoints
+
+#### Health Check
 ```http
 GET /api/v1/spider/health
 ```
@@ -34,7 +37,7 @@ GET /api/v1/spider/health
 }
 ```
 
-### Tool Information
+#### Tool Information
 ```http
 GET /api/v1/spider/info
 ```
@@ -51,237 +54,242 @@ GET /api/v1/spider/info
 }
 ```
 
-### Protein Prediction
+#### Protein Prediction
 ```http
-POST /api/v1/spider/predict
-Content-Type: multipart/form-data
+POST /api/v1/spider/predict?sequence=<protein_sequence>
 ```
 
-**Request:** Upload a FASTA file with protein sequences
+**Request:** Query parameter with protein sequence
 
 **Response:**
 ```json
 {
   "status": "success",
   "message": "Prediction completed successfully",
-  "results": [
+  "result": {
+    "label": "Druggable",
+    "probability": 0.85
+  },
+  "processing_time": 1.34,
+  "timestamp": "2024-01-15T10:30:00"
+}
+```
+
+### MCP-like Endpoints (AI Agent Friendly)
+
+#### List Available Tools
+```http
+GET /mcp/tools
+```
+
+**Response:**
+```json
+{
+  "tools": [
     {
-      "sequence_header": ">protein1",
-      "label": "Druggable",
-      "probability": 0.85
+      "name": "predict_druggability",
+      "title": "Predict Druggability",
+      "description": "Predict druggability of a protein sequence using SPIDER",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "sequence": {
+            "type": "string",
+            "description": "Protein sequence to analyze"
+          }
+        },
+        "required": ["sequence"]
+      }
     },
     {
-      "sequence_header": ">protein2", 
-      "label": "Non-druggable",
-      "probability": 0.23
-    }
-  ],
-  "total_sequences": 2,
-  "processing_time": 12.5,
-  "timestamp": "2024-01-15T10:30:00"
-}
-```
-
-## Input Format
-
-The API accepts FASTA format files containing protein sequences:
-
-```
->protein1
-MKTVRQERLKSIVRILERSKEPVSGAQLAEELSVSRQVIVQDIAYLRSLGYNIVATPRGYVLAGG
->protein2
-MKLLIVGFLFLAAAGVILGAVLALPGNLEGLLDKYGTSKKCLLDYKDDDDKCLLDYKDDDDK
-```
-
-## Output Format
-
-The API returns structured JSON with:
-- **sequence_header**: The FASTA header for each protein
-- **label**: Prediction label ("Druggable" or "Non-druggable")
-- **probability**: Confidence score (0.0 to 1.0)
-
-## Usage Examples
-
-### Using curl
-```bash
-# Health check
-curl http://localhost:8000/api/v1/spider/health
-
-# Submit prediction
-curl -X POST "http://localhost:8000/api/v1/spider/predict" \
-  -H "Content-Type: multipart/form-data" \
-  -F "file=@proteins.fasta"
-```
-
-### Using Python
-```python
-import requests
-
-# Submit FASTA file for prediction
-with open('proteins.fasta', 'rb') as f:
-    files = {'file': f}
-    response = requests.post(
-        'http://localhost:8000/api/v1/spider/predict',
-        files=files
-    )
-
-if response.status_code == 200:
-    results = response.json()
-    for result in results['results']:
-        print(f"{result['sequence_header']}: {result['label']} ({result['probability']:.2f})")
-```
-
-### Using JavaScript/Node.js
-```javascript
-const FormData = require('form-data');
-const fs = require('fs');
-const axios = require('axios');
-
-const form = new FormData();
-form.append('file', fs.createReadStream('proteins.fasta'));
-
-axios.post('http://localhost:8000/api/v1/spider/predict', form, {
-  headers: form.getHeaders()
-})
-.then(response => {
-  console.log(response.data);
-})
-.catch(error => {
-  console.error('Error:', error.response.data);
-});
-```
-
-## Error Handling
-
-The API returns appropriate HTTP status codes and error messages:
-
-- **400 Bad Request**: Invalid file format or missing file
-- **500 Internal Server Error**: SPIDER execution failed
-
-Error response format:
-```json
-{
-  "status": "error",
-  "error": "Invalid FASTA file format",
-  "message": "Invalid FASTA file format",
-  "timestamp": "2024-01-15T10:30:00"
-}
-```
-
-## MCP (Model Context Protocol) Support
-
-The SPIDER service also supports the Model Context Protocol (MCP), enabling integration with AI agents and assistants. The service uses a dual-environment setup:
-
-- **Base Environment (Python 3.12)**: Runs the REST API and MCP server
-- **Virtual Environment (Python 3.9)**: Runs SPIDER with its specific dependencies
-
-### MCP Tools Available
-
-1. **predict_druggability**: Predict druggability of a protein sequence
-   - Input: `{"sequence": "MKTVRQERLKSIVRILERSKEPVSGAQLAEELSVSRQVIVQDIAYLRSLGYNIVATPRGYVLAGG"}`
-   - Output: Prediction results with status, prediction, and probability
-
-2. **get_tool_info**: Get information about the SPIDER tool
-   - Input: `{}`
-   - Output: Tool information including name, version, and description
-
-### Running MCP Server
-
-#### Standalone MCP Server
-```bash
-# Run only MCP server
-python combined_server.py --mcp-only
-```
-
-#### Combined Server (REST + MCP)
-```bash
-# Run both REST API and MCP server
-python combined_server.py
-
-# Run with custom port
-python combined_server.py --port 8001
-```
-
-#### REST API Only
-```bash
-# Run only REST API server
-python combined_server.py --rest-only
-```
-
-### MCP Client Example
-
-```python
-import asyncio
-from mcp.client import ClientSession, StdioServerParameters
-from mcp.client.stdio import stdio_client
-
-async def main():
-    server_params = StdioServerParameters(
-        command="python",
-        args=["-m", "api.mcp_server"]
-    )
-    
-    async with stdio_client(server_params) as (read, write):
-        async with ClientSession(read, write, client_info={
-            'name': 'spider-client',
-            'version': '1.0.0'
-        }) as session:
-            # Initialize session (no arguments in MCP 1.11.0)
-            await session.initialize()  # No arguments
-            
-            # Predict druggability
-            result = await session.call_tool("predict_druggability", {
-                "sequence": "MKTVRQERLKSIVRILERSKEPVSGAQLAEELSVSRQVIVQDIAYLRSLGYNIVATPRGYVLAGG"
-            })
-            
-            if result.content:
-                print(result.content[0].text)
-
-asyncio.run(main())
-```
-
-### MCP Configuration
-
-For MCP clients, use the configuration in `mcp_config.json`:
-
-```json
-{
-  "mcpServers": {
-    "spider-bioinformatics": {
-      "command": "python",
-      "args": ["-m", "api.mcp_server"],
-      "env": {
-        "PYTHONPATH": "/app",
-        "SPIDER_HOME": "/app/spider_tool"
+      "name": "get_tool_info",
+      "title": "Get Tool Info",
+      "description": "Get information about the SPIDER tool",
+      "inputSchema": {
+        "type": "object",
+        "properties": {},
+        "required": []
       }
     }
+  ]
+}
+```
+
+#### Call Tool
+```http
+POST /mcp/call
+Content-Type: application/json
+```
+
+**Request Body:**
+```json
+{
+  "name": "predict_druggability",
+  "arguments": {
+    "sequence": "MKTVRQERLKSIVRILERSKEPVSGAQLAEELSVSRQVIVQDIAYLRSLGYNIVATPRGYVLAGG"
   }
 }
 ```
 
-### Docker with MCP
-
-To run the container with MCP support:
-
-```bash
-# Build and run with combined server
-docker build -t spider-api .
-docker run -p 8000:8000 spider-api python combined_server.py
-
-# Or run MCP only
-docker run spider-api python combined_server.py --mcp-only
-
-# Or run REST API only
-docker run -p 8000:8000 spider-api python combined_server.py --rest-only
+**Response:**
+```json
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "\nSPIDER Prediction Results:\n- Status: Success\n- Prediction: Negative\n- Probability: 0.01781960028124742\n- Message: Prediction completed successfully\n- Processing Time: 1.34s\n"
+    }
+  ]
+}
 ```
 
-The Docker container uses a dual-environment setup:
-- Python 3.12 base environment for the API and MCP server
-- Python 3.9 virtual environment for SPIDER dependencies
+## 📝 Input Format
 
-## Docker Usage
+The API accepts protein sequences in various formats:
 
-### Build and Run
+### REST API
+- **Query Parameter**: Direct sequence string
+- **Example**: `?sequence=MKTVRQERLKSIVRILERSKEPVSGAQLAEELSVSRQVIVQDIAYLRSLGYNIVATPRGYVLAGG`
+
+### MCP-like Endpoints
+- **JSON Payload**: Structured JSON with tool name and arguments
+- **Example**: `{"name": "predict_druggability", "arguments": {"sequence": "MKTVRQERLKSIVRILERSKEPVSGAQLAEELSVSRQVIVQDIAYLRSLGYNIVATPRGYVLAGG"}}`
+
+## 📊 Output Format
+
+### REST API Response
+- **status**: Success/error status
+- **message**: Human-readable message
+- **result**: Prediction object with label and probability
+- **processing_time**: Time taken for prediction (seconds)
+- **timestamp**: ISO timestamp
+
+### MCP-like Response
+- **content**: Array of content objects
+- **type**: Content type (always "text")
+- **text**: Formatted text response
+
+## 🧪 Usage Examples
+
+### REST API Examples
+
+#### Using curl
+```bash
+# Health check
+curl http://localhost:8000/api/v1/spider/health
+
+# Get tool info
+curl http://localhost:8000/api/v1/spider/info
+
+# Predict druggability
+curl -X POST "http://localhost:8000/api/v1/spider/predict?sequence=MKTVRQERLKSIVRILERSKEPVSGAQLAEELSVSRQVIVQDIAYLRSLGYNIVATPRGYVLAGG"
+```
+
+#### Using Python
+```python
+import requests
+
+# Health check
+response = requests.get('http://localhost:8000/api/v1/spider/health')
+print(response.json())
+
+# Predict druggability
+sequence = "MKTVRQERLKSIVRILERSKEPVSGAQLAEELSVSRQVIVQDIAYLRSLGYNIVATPRGYVLAGG"
+response = requests.post(
+    'http://localhost:8000/api/v1/spider/predict',
+    params={'sequence': sequence}
+)
+
+if response.status_code == 200:
+    result = response.json()
+    print(f"Prediction: {result['result']['label']}")
+    print(f"Probability: {result['result']['probability']:.3f}")
+```
+
+### MCP-like Endpoints Examples
+
+#### Using curl
+```bash
+# List available tools
+curl http://localhost:8000/mcp/tools
+
+# Get tool info
+curl -X POST http://localhost:8000/mcp/call \
+  -H "Content-Type: application/json" \
+  -d '{"name": "get_tool_info", "arguments": {}}'
+
+# Predict druggability
+curl -X POST http://localhost:8000/mcp/call \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "predict_druggability", 
+    "arguments": {
+      "sequence": "MKTVRQERLKSIVRILERSKEPVSGAQLAEELSVSRQVIVQDIAYLRSLGYNIVATPRGYVLAGG"
+    }
+  }'
+```
+
+#### Using Python
+```python
+import requests
+
+# List tools
+response = requests.get('http://localhost:8000/mcp/tools')
+tools = response.json()
+print(f"Available tools: {[tool['name'] for tool in tools['tools']]}")
+
+# Call tool
+payload = {
+    "name": "predict_druggability",
+    "arguments": {
+        "sequence": "MKTVRQERLKSIVRILERSKEPVSGAQLAEELSVSRQVIVQDIAYLRSLGYNIVATPRGYVLAGG"
+    }
+}
+
+response = requests.post(
+    'http://localhost:8000/mcp/call',
+    headers={'Content-Type': 'application/json'},
+    json=payload
+)
+
+if response.status_code == 200:
+    result = response.json()
+    print(result['content'][0]['text'])
+```
+
+## 🚨 Error Handling
+
+The API returns appropriate HTTP status codes and error messages:
+
+- **400 Bad Request**: Invalid sequence or missing parameters
+- **422 Unprocessable Entity**: Malformed JSON or validation errors
+- **500 Internal Server Error**: SPIDER execution failed
+
+### Error Response Format
+```json
+{
+  "status": "error",
+  "error": "Invalid sequence format",
+  "message": "Invalid sequence format",
+  "timestamp": "2024-01-15T10:30:00"
+}
+```
+
+## 🐳 Docker Deployment
+
+### Using Docker Compose (Recommended)
+```bash
+# Start the service
+docker-compose up -d spider
+
+# View logs
+docker-compose logs -f spider
+
+# Stop the service
+docker-compose down
+```
+
+### Manual Docker Build
 ```bash
 # Build the image
 docker build -t spider-api .
@@ -290,64 +298,51 @@ docker build -t spider-api .
 docker run -p 8000:8000 spider-api
 ```
 
-### Using Docker Compose
-```bash
-# Start the service
-docker-compose up -d spider
+## 🧪 Testing
 
-# View logs
-docker-compose logs spider
+### Run REST API Tests
+```bash
+python test_rest_api.py
 ```
 
-## Development
-
-### Local Development
+### Run MCP Endpoint Tests
 ```bash
-# Install dependencies
-pip install -r requirements.txt
-
-# Run the API
-python app.py
+python test_mcp_endpoints.py
 ```
 
-### Testing
+### Run All Tests
 ```bash
-# Test health endpoint
-curl http://localhost:8000/api/v1/spider/health
-
-# Test with sample FASTA file
-curl -X POST "http://localhost:8000/api/v1/spider/predict" \
-  -H "Content-Type: multipart/form-data" \
-  -F "file=@test_proteins.fasta"
+python test_rest_api.py && python test_mcp_endpoints.py
 ```
 
-## Configuration
+## 📚 API Documentation
 
-Environment variables:
-- `SPIDER_HOME`: Path to SPIDER tool installation (default: `/app/spider_tool`)
-- `PYTHONPATH`: Python path for imports (default: `/app`)
+Once the server is running, visit:
+- **Swagger UI**: http://localhost:8000/docs
+- **ReDoc**: http://localhost:8000/redoc
+- **OpenAPI JSON**: http://localhost:8000/openapi.json
 
-## Limitations
+## 🔧 Development
 
-- Maximum file size: 10MB
-- Supported formats: FASTA (.fasta, .fa, .fas)
-- Processing timeout: 5 minutes
-- Concurrent requests: Limited by available system resources
+### Architecture
+- **FastAPI**: Modern Python web framework
+- **Dual Environment**: Python 3.12 for API, Python 3.9 for SPIDER
+- **micromamba**: Lightweight conda environment manager
+- **Single Container**: Both REST and MCP-like endpoints in one container
 
-## Troubleshooting
+### Key Files
+- `app.py`: Main FastAPI application with both REST and MCP-like endpoints
+- `run_combined_v2.py`: Server entrypoint with process management
+- `api/spider_service.py`: Core SPIDER integration logic
+- `test_rest_api.py`: Comprehensive REST API test suite
+- `test_mcp_endpoints.py`: Comprehensive MCP endpoint test suite
 
-### Common Issues
+### Adding New Tools
+1. Add tool definition to MCP-like endpoints in `app.py`
+2. Implement tool logic in `api/spider_service.py`
+3. Add tests to both test suites
+4. Update documentation
 
-1. **File format error**: Ensure your file is in valid FASTA format
-2. **Timeout error**: Large files may take longer to process
-3. **Memory error**: Very large files may exceed container memory limits
+## 📄 License
 
-### Logs
-Check container logs for detailed error information:
-```bash
-docker logs <container_id>
-```
-
-## License
-
-This wrapper is licensed under the MIT License. The underlying SPIDER tool has its own license.
+This project is licensed under the MIT License - see the [LICENSE](../../LICENSE) file for details.
