@@ -44,10 +44,6 @@ RUN micromamba create -n spider python=3.9 -y && \
 # Copy API wrapper files
 COPY api/ ./api/
 COPY app.py .
-COPY combined_server.py .
-COPY combined_starlette.py .
-COPY combined_fastapi_mcp.py .
-COPY run_combined.py .
 COPY run_combined_v2.py .
 
 # Create necessary directories
