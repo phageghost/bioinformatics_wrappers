@@ -12,7 +12,7 @@ logger = logging.getLogger(__name__)
 
 async def main():
     """Test the SPIDER MCP Streamable HTTP server"""
-    async with streamablehttp_client(url='http://localhost:8001') as (read, write, get_session_id):
+    async with streamablehttp_client(url='http://localhost:8001/mcp') as (read, write, get_session_id):
         async with ClientSession(read, write, client_info={
             'name': 'spider-streamable-http-test-client',
             'version': '1.0.0'
