@@ -1,12 +1,10 @@
-version: '3.8'
-
 services:
   spider:
     image: spider-api:latest
     container_name: spider-api
     ports:
       - "8000:8000"  # REST API and MCP-like endpoints
-    command: micromamba run -n api python run_combined_v2.py
+    command: micromamba run -n api python run_combined_server.py
     environment:
       - SPIDER_HOME=/app/spider_tool
       - PYTHONPATH=/app
@@ -19,16 +17,6 @@ services:
       timeout: 10s
       retries: 3
       start_period: 40s
-    networks:
-      - bioinformatics_network
-
-  blast:
-    image: blast-api:latest
-    container_name: blast-api
-    ports:
-      - "8001:8000"  # Different port for BLAST
-    command: echo "BLAST API would run here"
-    restart: unless-stopped
     networks:
       - bioinformatics_network
 

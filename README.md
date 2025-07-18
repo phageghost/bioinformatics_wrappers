@@ -17,7 +17,7 @@ bioinformatics_wrappers/
 │   │   ├── BUILD            # Build number counter (auto-generated)
 │   │   ├── api/             # Core API implementation
 │   │   ├── app.py           # FastAPI application (REST + MCP-like)
-│   │   ├── run_combined_v2.py # Server entrypoint
+│   │   ├── run_combined_server.py # Server entrypoint
 │   │   ├── test_rest_api.py # REST API test suite
 │   │   ├── test_mcp_endpoints.py # MCP endpoint test suite
 │   │   ├── examples/        # Usage examples

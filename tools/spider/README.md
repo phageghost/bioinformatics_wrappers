@@ -332,7 +332,7 @@ Once the server is running, visit:
 
 ### Key Files
 - `app.py`: Main FastAPI application with both REST and MCP-like endpoints
-- `run_combined_v2.py`: Server entrypoint with process management
+- `run_combined_server.py`: Server entrypoint with process management
 - `api/spider_service.py`: Core SPIDER integration logic
 - `test_rest_api.py`: Comprehensive REST API test suite
 - `test_mcp_endpoints.py`: Comprehensive MCP endpoint test suite
