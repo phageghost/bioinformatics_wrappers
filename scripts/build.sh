@@ -1,5 +1,5 @@
 #!/bin/bash
-# Build script for bioinformatics tool wrappers using docker-compose
+# Build script for bioinformatics tool wrappers
 
 set -e
 
@@ -45,6 +45,27 @@ show_usage() {
     echo "  $0 --version 1.3.0     # Build with specific version"
     echo "  $0 --platform amd64    # Build only AMD64 version"
     echo "  $0 --no-cache          # Build without cache"
+}
+
+# Function to read version from VERSION file
+read_version() {
+    local tool_name=$1
+    local version_file="tools/$tool_name/VERSION"
+    
+    if [[ -f "$version_file" ]]; then
+        cat "$version_file" | tr -d ' \t\n\r'
+    else
+        echo "latest"
+    fi
+}
+
+# Function to validate semver format
+validate_semver() {
+    local version=$1
+    if [[ ! "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+        return 1
+    fi
+    return 0
 }
 
 # Parse command line arguments
@@ -106,63 +127,77 @@ case "$PLATFORM" in
         ;;
 esac
 
-# Set up environment variables
-if [[ -n "$VERSION" ]]; then
-    export VERSION="$VERSION"
-    print_status "Using specified version: $VERSION"
-else
-    # Read version from VERSION file if it exists
-    if [[ -f "tools/spider/VERSION" ]]; then
-        SPIDER_VERSION=$(cat tools/spider/VERSION | tr -d ' \t\n\r')
-        export VERSION="$SPIDER_VERSION"
-        print_status "Using SPIDER version from VERSION file: $VERSION"
-    else
-        export VERSION="latest"
-        print_warning "No VERSION file found, using 'latest'"
-    fi
-fi
-
-# Set up buildx for multi-arch builds
-if [[ "$PLATFORM" == "multi" ]]; then
-    print_status "Setting up Docker buildx for multi-arch builds..."
-    docker buildx create --use --name bioinformatics-builder 2>/dev/null || true
-fi
-
-# Build command
-BUILD_CMD="docker-compose build"
-
+# Determine version and service
 if [[ -n "$SERVICE" ]]; then
-    BUILD_CMD="$BUILD_CMD $SERVICE"
-    print_status "Building service: $SERVICE"
+    if [[ -z "$VERSION" ]]; then
+        VERSION=$(read_version "$SERVICE")
+        print_status "Using $SERVICE version from VERSION file: $VERSION"
+    else
+        print_status "Using specified version: $VERSION"
+    fi
+    
+    # Validate version format
+    if [[ "$VERSION" != "latest" ]] && ! validate_semver "$VERSION"; then
+        print_warning "Version '$VERSION' doesn't follow semver format (x.y.z)"
+    fi
+    
+    # Set up buildx for multi-arch builds
+    if [[ "$PLATFORM" == "multi" ]]; then
+        print_status "Setting up Docker buildx for multi-arch builds..."
+        docker buildx create --use --name bioinformatics-builder 2>/dev/null || true
+    fi
+    
+    # Build command based on platform
+    if [[ "$PLATFORM" == "multi" ]]; then
+        print_status "Building multi-arch image for $SERVICE version $VERSION"
+        docker buildx build \
+            --platform linux/amd64,linux/arm64 \
+            -t "${SERVICE}-api:${VERSION}" \
+            -t "${SERVICE}-api:latest" \
+            --load \
+            "./tools/$SERVICE"
+    else
+        print_status "Building $PLATFORM image for $SERVICE version $VERSION"
+        docker buildx build \
+            --platform "linux/$PLATFORM" \
+            -t "${SERVICE}-api:${VERSION}-${PLATFORM}" \
+            --load \
+            "./tools/$SERVICE"
+    fi
+    
+    print_success "Build completed successfully!"
+    
+    # Show built images
+    print_status "Built images:"
+    docker images | grep "${SERVICE}-api" | head -3
+    
 else
-    print_status "Building all services"
-fi
-
-if [[ "$NO_CACHE" == "true" ]]; then
-    BUILD_CMD="$BUILD_CMD --no-cache"
-    print_status "Building without cache"
-fi
-
-# Execute build
-print_status "Executing: $BUILD_CMD"
-print_status "Version: $VERSION"
-print_status "Platform: $PLATFORM"
-
-eval "$BUILD_CMD"
-
-if [[ $? -eq 0 ]]; then
+    # Build all services
+    print_status "Building all services..."
+    
+    # For now, just build SPIDER since it's the only service
+    SPIDER_VERSION=$(read_version "spider")
+    print_status "Building SPIDER version: $SPIDER_VERSION"
+    
+    if [[ "$PLATFORM" == "multi" ]]; then
+        docker buildx create --use --name bioinformatics-builder 2>/dev/null || true
+        docker buildx build \
+            --platform linux/amd64,linux/arm64 \
+            -t "spider-api:${SPIDER_VERSION}" \
+            -t "spider-api:latest" \
+            --load \
+            "./tools/spider"
+    else
+        docker buildx build \
+            --platform "linux/$PLATFORM" \
+            -t "spider-api:${SPIDER_VERSION}-${PLATFORM}" \
+            --load \
+            "./tools/spider"
+    fi
+    
     print_success "Build completed successfully!"
     
     # Show built images
     print_status "Built images:"
     docker images | grep "spider-api" | head -3
-    
-    if [[ "$PUSH" == "true" ]]; then
-        print_status "Pushing images to registry..."
-        docker-compose push
-        print_success "Images pushed successfully!"
-    fi
-else
-    print_error "Build failed!"
-    exit 1
 fi 

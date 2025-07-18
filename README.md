@@ -25,8 +25,7 @@ bioinformatics_wrappers/
 │   └── [other_tools]/       # Future tool wrappers
 ├── docker-compose.yml       # Orchestration for all tools
 ├── scripts/                 # Utility scripts
-│   ├── build.sh            # Build script with versioning
-│   └── version.sh          # Version management script
+│   └── build.sh            # Build script with auto-versioning
 └── docs/                    # Documentation
 ```
 
@@ -71,24 +70,15 @@ docker run -p 8000:8000 spider-api
 Each tool has its own version file (`tools/{tool}/VERSION`) for independent versioning:
 
 ```bash
-# Show current versions
-./scripts/version.sh show
+# View current version
+cat tools/spider/VERSION
 
-# Show specific tool version
-./scripts/version.sh show spider
-
-# Set version for a tool
-./scripts/version.sh set spider 1.3.0
-
-# Bump version (patch, minor, major)
-./scripts/version.sh bump spider minor
-
-# Validate all version files
-./scripts/version.sh validate
+# Update version manually
+echo "0.1.0" > tools/spider/VERSION
 ```
 
-### Building with Docker Compose
-The build system automatically reads version files and creates properly tagged images:
+### Building with Auto-Versioning
+The build script automatically reads VERSION files and creates properly tagged images:
 
 ```bash
 # Build all tools with versions from VERSION files
@@ -97,36 +87,32 @@ The build system automatically reads version files and creates properly tagged i
 # Build specific tool
 ./scripts/build.sh --service spider
 
-# Build with specific version
-./scripts/build.sh --version 1.3.0
+# Build with specific version (overrides VERSION file)
+./scripts/build.sh --service spider --version 1.3.0
 
 # Build for specific platform
-./scripts/build.sh --platform amd64
+./scripts/build.sh --service spider --platform amd64
+./scripts/build.sh --service spider --platform arm64
+./scripts/build.sh --service spider --platform multi
 
 # Build without cache
-./scripts/build.sh --no-cache
-
-# Build and push to registry
-./scripts/build.sh --push
+./scripts/build.sh --service spider --no-cache
 ```
 
 ### Image Tagging
 Images are automatically tagged with versions:
-- `spider-api:1.2.0` - Multi-arch image with version
+- `spider-api:0.1.0` - Multi-arch image with version
 - `spider-api:latest` - Latest version
-- `spider-api:1.2.0-amd64` - AMD64 specific version
-- `spider-api:1.2.0-arm64` - ARM64 specific version
+- `spider-api:0.1.0-amd64` - AMD64 specific version
+- `spider-api:0.1.0-arm64` - ARM64 specific version
 
 ### Manual Docker Compose Building
 ```bash
-# Build with automatic version detection
-docker-compose build
-
-# Build specific service
-docker-compose build spider
-
 # Build with custom version
-VERSION=1.3.0 docker-compose build spider
+VERSION=0.1.0 docker-compose build spider
+
+# Build all services
+docker-compose build
 ```
 
 ## 🔌 API Usage
