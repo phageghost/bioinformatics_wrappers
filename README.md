@@ -48,7 +48,10 @@ bioinformatics_wrappers/
 
 ### Using Docker Compose (Recommended)
 ```bash
-# Start all tools
+# First, build all tools with auto-versioning
+./scripts/build.sh
+
+# Then start all tools
 docker-compose up -d
 
 # Start specific tool
@@ -155,6 +158,40 @@ VERSION=0.1.0 docker-compose build spider
 # Build all services
 docker-compose build
 ```
+
+## 🔄 Build and Run Workflow
+
+### Two-Step Process
+The system uses a **two-step workflow** for optimal CI/CD integration:
+
+1. **Build Step** (using build script):
+   ```bash
+   # Build all tools with auto-versioning
+   ./scripts/build.sh
+   
+   # Build specific tool
+   ./scripts/build.sh --service spider
+   ```
+   - Creates versioned images: `spider-api:0.1.0.5`, `blast-api:1.0.0.2`
+   - Tags latest: `spider-api:latest`, `blast-api:latest`
+
+2. **Run Step** (using docker-compose):
+   ```bash
+   # Run all tools
+   docker-compose up -d
+   
+   # Run specific tool
+   docker-compose up -d spider
+   ```
+   - Uses `:latest` images created by build script
+   - No building during runtime (faster startup)
+
+### Why This Approach?
+- **Separation of Concerns**: Build once, run many times
+- **CI/CD Friendly**: Build in CI, deploy with docker-compose
+- **Version Control**: Each build gets unique version number
+- **Fast Deployment**: No build time during deployment
+- **Rollback Ready**: Can easily switch to previous versions
 
 ## 🔌 API Usage
 
