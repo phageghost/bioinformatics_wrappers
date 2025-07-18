@@ -337,12 +337,6 @@ Once the server is running, visit:
 - `test_rest_api.py`: Comprehensive REST API test suite
 - `test_mcp_endpoints.py`: Comprehensive MCP endpoint test suite
 
-### Adding New Tools
-1. Add tool definition to MCP-like endpoints in `app.py`
-2. Implement tool logic in `api/spider_service.py`
-3. Add tests to both test suites
-4. Update documentation
-
 ## 📄 License
 
 This project is licensed under the MIT License - see the [LICENSE](../../LICENSE) file for details.
