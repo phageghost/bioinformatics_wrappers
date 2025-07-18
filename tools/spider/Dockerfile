@@ -1,5 +1,9 @@
 FROM python:3.12-slim
 
+# Build arguments
+ARG VERSION=latest
+ARG TARGETARCH
+
 # Set working directory
 WORKDIR /app
 
@@ -15,7 +19,6 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 
 # Install micromamba properly
-ARG TARGETARCH
 RUN if [ "$TARGETARCH" = "arm64" ]; then \
       ARCH=linux-aarch64 ; \
     else \
@@ -53,6 +56,15 @@ RUN mkdir -p /app/spider_tool/input /app/spider_tool/output
 ENV PYTHONPATH=/app
 ENV SPIDER_HOME=/app/spider_tool
 ENV SPIDER_ENV=spider
+ENV VERSION=${VERSION}
+
+# Add labels for better image management
+LABEL org.opencontainers.image.title="SPIDER Bioinformatics API"
+LABEL org.opencontainers.image.description="REST API and MCP-like endpoints for SPIDER protein druggability prediction"
+LABEL org.opencontainers.image.version="${VERSION}"
+LABEL org.opencontainers.image.source="https://github.com/plenoi/SPIDER"
+LABEL org.opencontainers.image.licenses="MIT"
+LABEL maintainer="bioinformatics-wrappers"
 
 # Expose port
 EXPOSE 8000

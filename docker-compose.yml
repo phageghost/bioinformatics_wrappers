@@ -1,8 +1,20 @@
+version: '3.8'
+
+# Load version from VERSION file if it exists
+x-version: &version
+  VERSION: ${VERSION:-$(cat tools/spider/VERSION 2>/dev/null || echo "latest")}
+
 services:
   spider:
     build:
       context: ./tools/spider
       dockerfile: Dockerfile
+      args:
+        - VERSION=${VERSION:-$(cat tools/spider/VERSION 2>/dev/null || echo "latest")}
+      platforms:
+        - linux/amd64
+        - linux/arm64
+    image: spider-api:${VERSION:-$(cat tools/spider/VERSION 2>/dev/null || echo "latest")}
     container_name: spider-api
     ports:
       - "8000:8000"  # REST API and MCP-like endpoints
@@ -10,6 +22,7 @@ services:
     environment:
       - SPIDER_HOME=/app/spider_tool
       - PYTHONPATH=/app
+      - <<: *version
     volumes:
       - spider_data:/app/spider_tool/output
     restart: unless-stopped
@@ -27,11 +40,18 @@ services:
   #   build:
   #     context: ./tools/tool_name
   #     dockerfile: Dockerfile
+  #     args:
+  #       - VERSION=${TOOL_NAME_VERSION:-$(cat tools/tool_name/VERSION 2>/dev/null || echo "latest")}
+  #     platforms:
+  #       - linux/amd64
+  #       - linux/arm64
+  #   image: tool_name-api:${TOOL_NAME_VERSION:-$(cat tools/tool_name/VERSION 2>/dev/null || echo "latest")}
   #   container_name: tool_name-api
   #   ports:
   #     - "8001:8000"  # Use different ports for each tool
   #   environment:
   #     - TOOL_HOME=/app/tool_name
+  #     - VERSION=${TOOL_NAME_VERSION:-$(cat tools/tool_name/VERSION 2>/dev/null || echo "latest")}
   #   volumes:
   #     - tool_name_data:/app/tool_name/output
   #   restart: unless-stopped
