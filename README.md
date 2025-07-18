@@ -23,6 +23,10 @@ bioinformatics_wrappers/
 │   │   ├── examples/        # Usage examples
 │   │   ├── requirements.txt # Python dependencies
 │   │   └── README.md        # Tool-specific documentation
+│   ├── blast/               # BLAST tool wrapper (example)
+│   │   ├── Dockerfile       # Docker configuration
+│   │   ├── VERSION          # Tool version file
+│   │   └── BUILD            # Build number counter (auto-generated)
 │   └── [other_tools]/       # Future tool wrappers
 ├── docker-compose.yml       # Orchestration for all tools
 ├── scripts/                 # Utility scripts
@@ -101,6 +105,9 @@ The build script automatically reads VERSION files and creates properly tagged i
 # Build all tools with versions from VERSION files
 ./scripts/build.sh
 
+# List all available tools
+./scripts/build.sh --list
+
 # Build specific tool
 ./scripts/build.sh --service spider
 
@@ -117,6 +124,19 @@ The build script automatically reads VERSION files and creates properly tagged i
 
 # Build without incrementing build number
 ./scripts/build.sh --service spider --no-increment
+```
+
+### Tool Discovery
+The build script automatically discovers all available tools by scanning the `tools/` directory for subdirectories containing `Dockerfile` files:
+
+```bash
+# List all available tools and their versions
+./scripts/build.sh --list
+
+# Example output:
+# [INFO] Available tools:
+#   blast: 1.0.0 (build 1)
+#   spider: 0.1.0 (build 5)
 ```
 
 ### Image Tagging
