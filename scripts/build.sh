@@ -38,6 +38,7 @@ show_usage() {
     echo "  --push                 Push to registry after building"
     echo "  --no-cache            Build without cache"
     echo "  --no-increment        Don't increment build number"
+    echo "  --list                List all available tools"
     echo "  --help                Show this help message"
     echo ""
     echo "Examples:"
@@ -47,6 +48,60 @@ show_usage() {
     echo "  $0 --platform amd64    # Build only AMD64 version"
     echo "  $0 --no-cache          # Build without cache"
     echo "  $0 --no-increment      # Build without incrementing build number"
+    echo "  $0 --list              # List all available tools"
+}
+
+# Function to discover available tools
+discover_tools() {
+    local tools_dir="tools"
+    local tools=()
+    
+    if [[ ! -d "$tools_dir" ]]; then
+        print_error "Tools directory '$tools_dir' not found"
+        return 1
+    fi
+    
+    for tool_dir in "$tools_dir"/*/; do
+        if [[ -d "$tool_dir" ]]; then
+            local tool_name=$(basename "$tool_dir")
+            # Check if it has a Dockerfile (indicating it's a buildable tool)
+            if [[ -f "$tool_dir/Dockerfile" ]]; then
+                tools+=("$tool_name")
+            fi
+        fi
+    done
+    
+    echo "${tools[@]}"
+}
+
+# Function to list available tools
+list_tools() {
+    local tools=($(discover_tools))
+    
+    if [[ ${#tools[@]} -eq 0 ]]; then
+        print_warning "No buildable tools found in tools/ directory"
+        return
+    fi
+    
+    print_status "Available tools:"
+    for tool in "${tools[@]}"; do
+        local version_file="tools/$tool/VERSION"
+        local build_file="tools/$tool/BUILD"
+        
+        if [[ -f "$version_file" ]]; then
+            local version=$(cat "$version_file" | tr -d ' \t\n\r')
+            local build_info=""
+            
+            if [[ -f "$build_file" ]]; then
+                local build_num=$(cat "$build_file" | tr -d ' \t\n\r')
+                build_info=" (build $build_num)"
+            fi
+            
+            echo "  $tool: $version$build_info"
+        else
+            echo "  $tool: no version file"
+        fi
+    done
 }
 
 # Function to read version from VERSION file
@@ -104,6 +159,67 @@ validate_semver() {
     return 0
 }
 
+# Function to build a single tool
+build_tool() {
+    local tool_name=$1
+    local version=$2
+    local platform=$3
+    local no_increment=$4
+    
+    print_status "Building tool: $tool_name"
+    
+    # Determine version
+    local final_version
+    if [[ -n "$version" ]]; then
+        final_version="$version"
+        print_status "Using specified version: $final_version"
+    else
+        local base_version=$(read_version "$tool_name")
+        if [[ "$no_increment" == "true" ]]; then
+            final_version="$base_version"
+            print_status "Using $tool_name version from VERSION file: $final_version (no increment)"
+        else
+            final_version=$(increment_build_number "$tool_name")
+            print_status "Using $tool_name version with build number: $final_version"
+        fi
+    fi
+    
+    # Validate version format (skip for versions with build numbers)
+    if [[ ! "$final_version" =~ \.[0-9]+$ ]] && [[ "$final_version" != "latest" ]] && ! validate_semver "$final_version"; then
+        print_warning "Version '$final_version' doesn't follow semver format (x.y.z)"
+    fi
+    
+    # Set up buildx for multi-arch builds
+    if [[ "$platform" == "multi" ]]; then
+        print_status "Setting up Docker buildx for multi-arch builds..."
+        docker buildx create --use --name bioinformatics-builder 2>/dev/null || true
+    fi
+    
+    # Build command based on platform
+    if [[ "$platform" == "multi" ]]; then
+        print_status "Building multi-arch image for $tool_name version $final_version"
+        docker buildx build \
+            --platform linux/amd64,linux/arm64 \
+            -t "${tool_name}-api:${final_version}" \
+            -t "${tool_name}-api:latest" \
+            --load \
+            "./tools/$tool_name"
+    else
+        print_status "Building $platform image for $tool_name version $final_version"
+        docker buildx build \
+            --platform "linux/$platform" \
+            -t "${tool_name}-api:${final_version}-${platform}" \
+            --load \
+            "./tools/$tool_name"
+    fi
+    
+    print_success "Build completed for $tool_name!"
+    
+    # Show built images
+    print_status "Built images for $tool_name:"
+    docker images | grep "${tool_name}-api" | head -3
+}
+
 # Parse command line arguments
 SERVICE=""
 VERSION=""
@@ -111,6 +227,7 @@ PLATFORM="multi"
 PUSH=false
 NO_CACHE=false
 NO_INCREMENT=false
+LIST_TOOLS=false
 
 while [[ $# -gt 0 ]]; do
     case $1 in
@@ -138,6 +255,10 @@ while [[ $# -gt 0 ]]; do
             NO_INCREMENT=true
             shift
             ;;
+        --list)
+            LIST_TOOLS=true
+            shift
+            ;;
         --help)
             show_usage
             exit 0
@@ -158,6 +279,12 @@ done
 # Change to project root
 cd "$(dirname "$0")/.."
 
+# Handle list command
+if [[ "$LIST_TOOLS" == "true" ]]; then
+    list_tools
+    exit 0
+fi
+
 # Validate platform
 case "$PLATFORM" in
     "amd64"|"arm64"|"multi")
@@ -168,89 +295,38 @@ case "$PLATFORM" in
         ;;
 esac
 
-# Determine version and service
+# Build logic
 if [[ -n "$SERVICE" ]]; then
-    if [[ -z "$VERSION" ]]; then
-        BASE_VERSION=$(read_version "$SERVICE")
-        if [[ "$NO_INCREMENT" == "true" ]]; then
-            VERSION="$BASE_VERSION"
-            print_status "Using $SERVICE version from VERSION file: $VERSION (no increment)"
-        else
-            VERSION=$(increment_build_number "$SERVICE")
-            print_status "Using $SERVICE version with build number: $VERSION"
-        fi
-    else
-        print_status "Using specified version: $VERSION"
+    # Build specific service
+    if [[ ! -d "tools/$SERVICE" ]]; then
+        print_error "Tool '$SERVICE' not found in tools/ directory"
+        print_status "Available tools:"
+        list_tools
+        exit 1
     fi
     
-    # Validate version format (skip for versions with build numbers)
-    if [[ ! "$VERSION" =~ \.[0-9]+$ ]] && [[ "$VERSION" != "latest" ]] && ! validate_semver "$VERSION"; then
-        print_warning "Version '$VERSION' doesn't follow semver format (x.y.z)"
+    if [[ ! -f "tools/$SERVICE/Dockerfile" ]]; then
+        print_error "Tool '$SERVICE' does not have a Dockerfile"
+        exit 1
     fi
     
-    # Set up buildx for multi-arch builds
-    if [[ "$PLATFORM" == "multi" ]]; then
-        print_status "Setting up Docker buildx for multi-arch builds..."
-        docker buildx create --use --name bioinformatics-builder 2>/dev/null || true
-    fi
-    
-    # Build command based on platform
-    if [[ "$PLATFORM" == "multi" ]]; then
-        print_status "Building multi-arch image for $SERVICE version $VERSION"
-        docker buildx build \
-            --platform linux/amd64,linux/arm64 \
-            -t "${SERVICE}-api:${VERSION}" \
-            -t "${SERVICE}-api:latest" \
-            --load \
-            "./tools/$SERVICE"
-    else
-        print_status "Building $PLATFORM image for $SERVICE version $VERSION"
-        docker buildx build \
-            --platform "linux/$PLATFORM" \
-            -t "${SERVICE}-api:${VERSION}-${PLATFORM}" \
-            --load \
-            "./tools/$SERVICE"
-    fi
-    
-    print_success "Build completed successfully!"
-    
-    # Show built images
-    print_status "Built images:"
-    docker images | grep "${SERVICE}-api" | head -3
+    build_tool "$SERVICE" "$VERSION" "$PLATFORM" "$NO_INCREMENT"
     
 else
     # Build all services
-    print_status "Building all services..."
+    tools=($(discover_tools))
     
-    # For now, just build SPIDER since it's the only service
-    BASE_VERSION=$(read_version "spider")
-    if [[ "$NO_INCREMENT" == "true" ]]; then
-        SPIDER_VERSION="$BASE_VERSION"
-        print_status "Building SPIDER version: $SPIDER_VERSION (no increment)"
-    else
-        SPIDER_VERSION=$(increment_build_number "spider")
-        print_status "Building SPIDER version with build number: $SPIDER_VERSION"
+    if [[ ${#tools[@]} -eq 0 ]]; then
+        print_error "No buildable tools found in tools/ directory"
+        exit 1
     fi
     
-    if [[ "$PLATFORM" == "multi" ]]; then
-        docker buildx create --use --name bioinformatics-builder 2>/dev/null || true
-        docker buildx build \
-            --platform linux/amd64,linux/arm64 \
-            -t "spider-api:${SPIDER_VERSION}" \
-            -t "spider-api:latest" \
-            --load \
-            "./tools/spider"
-    else
-        docker buildx build \
-            --platform "linux/$PLATFORM" \
-            -t "spider-api:${SPIDER_VERSION}-${PLATFORM}" \
-            --load \
-            "./tools/spider"
-    fi
+    print_status "Building all tools: ${tools[*]}"
     
-    print_success "Build completed successfully!"
+    for tool in "${tools[@]}"; do
+        echo ""
+        build_tool "$tool" "$VERSION" "$PLATFORM" "$NO_INCREMENT"
+    done
     
-    # Show built images
-    print_status "Built images:"
-    docker images | grep "spider-api" | head -3
+    print_success "All builds completed successfully!"
 fi 
