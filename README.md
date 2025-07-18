@@ -14,6 +14,7 @@ bioinformatics_wrappers/
 │   ├── spider/              # SPIDER tool wrapper
 │   │   ├── Dockerfile       # Docker configuration
 │   │   ├── VERSION          # Tool version file
+│   │   ├── BUILD            # Build number counter (auto-generated)
 │   │   ├── api/             # Core API implementation
 │   │   ├── app.py           # FastAPI application (REST + MCP-like)
 │   │   ├── run_combined_v2.py # Server entrypoint
@@ -25,7 +26,7 @@ bioinformatics_wrappers/
 │   └── [other_tools]/       # Future tool wrappers
 ├── docker-compose.yml       # Orchestration for all tools
 ├── scripts/                 # Utility scripts
-│   └── build.sh            # Build script with auto-versioning
+│   └── build.sh            # Build script with auto-versioning and CI/CD
 └── docs/                    # Documentation
 ```
 
@@ -77,6 +78,22 @@ cat tools/spider/VERSION
 echo "0.1.0" > tools/spider/VERSION
 ```
 
+### CI/CD Build Numbering
+The build script automatically increments a build number (4th version component) for each build:
+
+```bash
+# First build creates: 0.1.0.1
+./scripts/build.sh --service spider
+
+# Second build creates: 0.1.0.2
+./scripts/build.sh --service spider
+
+# Build without incrementing (uses base version)
+./scripts/build.sh --service spider --no-increment
+```
+
+Build numbers are stored in `tools/{tool}/BUILD` files and persist across builds.
+
 ### Building with Auto-Versioning
 The build script automatically reads VERSION files and creates properly tagged images:
 
@@ -97,14 +114,18 @@ The build script automatically reads VERSION files and creates properly tagged i
 
 # Build without cache
 ./scripts/build.sh --service spider --no-cache
+
+# Build without incrementing build number
+./scripts/build.sh --service spider --no-increment
 ```
 
 ### Image Tagging
 Images are automatically tagged with versions:
-- `spider-api:0.1.0` - Multi-arch image with version
+- `spider-api:0.1.0.1` - Multi-arch image with build number
+- `spider-api:0.1.0.2` - Next build number
 - `spider-api:latest` - Latest version
-- `spider-api:0.1.0-amd64` - AMD64 specific version
-- `spider-api:0.1.0-arm64` - ARM64 specific version
+- `spider-api:0.1.0.1-amd64` - AMD64 specific version with build number
+- `spider-api:0.1.0.1-arm64` - ARM64 specific version with build number
 
 ### Manual Docker Compose Building
 ```bash

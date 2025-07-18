@@ -37,6 +37,7 @@ show_usage() {
     echo "  --platform <arch>      Build for specific platform (amd64, arm64, or multi)"
     echo "  --push                 Push to registry after building"
     echo "  --no-cache            Build without cache"
+    echo "  --no-increment        Don't increment build number"
     echo "  --help                Show this help message"
     echo ""
     echo "Examples:"
@@ -45,6 +46,7 @@ show_usage() {
     echo "  $0 --version 1.3.0     # Build with specific version"
     echo "  $0 --platform amd64    # Build only AMD64 version"
     echo "  $0 --no-cache          # Build without cache"
+    echo "  $0 --no-increment      # Build without incrementing build number"
 }
 
 # Function to read version from VERSION file
@@ -57,6 +59,40 @@ read_version() {
     else
         echo "latest"
     fi
+}
+
+# Function to increment build number
+increment_build_number() {
+    local tool_name=$1
+    local version_file="tools/$tool_name/VERSION"
+    local build_file="tools/$tool_name/BUILD"
+    
+    # Read current version
+    local current_version=$(read_version "$tool_name")
+    
+    if [[ "$current_version" == "latest" ]]; then
+        print_warning "Cannot increment build number for 'latest' version"
+        echo "latest"
+        return
+    fi
+    
+    # Read current build number
+    local current_build=0
+    if [[ -f "$build_file" ]]; then
+        current_build=$(cat "$build_file" | tr -d ' \t\n\r')
+        if [[ ! "$current_build" =~ ^[0-9]+$ ]]; then
+            current_build=0
+        fi
+    fi
+    
+    # Increment build number
+    local new_build=$((current_build + 1))
+    
+    # Write new build number
+    echo "$new_build" > "$build_file"
+    
+    # Return version with build number
+    echo "${current_version}.${new_build}"
 }
 
 # Function to validate semver format
@@ -74,6 +110,7 @@ VERSION=""
 PLATFORM="multi"
 PUSH=false
 NO_CACHE=false
+NO_INCREMENT=false
 
 while [[ $# -gt 0 ]]; do
     case $1 in
@@ -95,6 +132,10 @@ while [[ $# -gt 0 ]]; do
             ;;
         --no-cache)
             NO_CACHE=true
+            shift
+            ;;
+        --no-increment)
+            NO_INCREMENT=true
             shift
             ;;
         --help)
@@ -130,14 +171,20 @@ esac
 # Determine version and service
 if [[ -n "$SERVICE" ]]; then
     if [[ -z "$VERSION" ]]; then
-        VERSION=$(read_version "$SERVICE")
-        print_status "Using $SERVICE version from VERSION file: $VERSION"
+        BASE_VERSION=$(read_version "$SERVICE")
+        if [[ "$NO_INCREMENT" == "true" ]]; then
+            VERSION="$BASE_VERSION"
+            print_status "Using $SERVICE version from VERSION file: $VERSION (no increment)"
+        else
+            VERSION=$(increment_build_number "$SERVICE")
+            print_status "Using $SERVICE version with build number: $VERSION"
+        fi
     else
         print_status "Using specified version: $VERSION"
     fi
     
-    # Validate version format
-    if [[ "$VERSION" != "latest" ]] && ! validate_semver "$VERSION"; then
+    # Validate version format (skip for versions with build numbers)
+    if [[ ! "$VERSION" =~ \.[0-9]+$ ]] && [[ "$VERSION" != "latest" ]] && ! validate_semver "$VERSION"; then
         print_warning "Version '$VERSION' doesn't follow semver format (x.y.z)"
     fi
     
@@ -176,8 +223,14 @@ else
     print_status "Building all services..."
     
     # For now, just build SPIDER since it's the only service
-    SPIDER_VERSION=$(read_version "spider")
-    print_status "Building SPIDER version: $SPIDER_VERSION"
+    BASE_VERSION=$(read_version "spider")
+    if [[ "$NO_INCREMENT" == "true" ]]; then
+        SPIDER_VERSION="$BASE_VERSION"
+        print_status "Building SPIDER version: $SPIDER_VERSION (no increment)"
+    else
+        SPIDER_VERSION=$(increment_build_number "spider")
+        print_status "Building SPIDER version with build number: $SPIDER_VERSION"
+    fi
     
     if [[ "$PLATFORM" == "multi" ]]; then
         docker buildx create --use --name bioinformatics-builder 2>/dev/null || true
