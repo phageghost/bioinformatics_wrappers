@@ -115,13 +115,13 @@ SPIDER Tool Information:
 """
         return [TextContent(type="text", text=info_text)]
 
-# Mount MCP server if available
+# Mount MCP server if available (disabled for now)
 if MCP_AVAILABLE and mcp_server:
     print("Creating MCP streamable HTTP app...")
     mcp_app = mcp_server.streamable_http_app()
-    print("Mounting MCP app to /mcp...")
-    app.mount("/mcp", mcp_app)
-    print("MCP server mounted at /mcp")
+    print("MCP app created but not mounted - using MCP-like endpoints instead")
+    # app.mount("/mcp", mcp_app)  # Disabled to avoid route conflicts
+    print("MCP server not mounted - using MCP-like endpoints")
 else:
     print("MCP server not available - running REST API only")
 
@@ -210,6 +210,126 @@ async def predict_druggable_proteins(sequence: str):
             # Clean up temporary file
             if os.path.exists(temp_file.name):
                 os.unlink(temp_file.name)
+
+# MCP-like endpoints for AI agents
+@app.get("/mcp/tools")
+async def list_mcp_tools():
+    """List available MCP tools"""
+    return {
+        "tools": [
+            {
+                "name": "predict_druggability",
+                "title": "Predict Druggability",
+                "description": "Predict druggability of a protein sequence using SPIDER",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {
+                        "sequence": {
+                            "type": "string",
+                            "description": "Protein sequence to analyze"
+                        }
+                    },
+                    "required": ["sequence"]
+                }
+            },
+            {
+                "name": "get_tool_info",
+                "title": "Get Tool Info",
+                "description": "Get information about the SPIDER tool",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {},
+                    "required": []
+                }
+            }
+        ]
+    }
+
+@app.post("/mcp/call")
+async def call_mcp_tool(request: dict):
+    """Call an MCP tool"""
+    tool_name = request.get("name")
+    arguments = request.get("arguments", {})
+    
+    if tool_name == "predict_druggability":
+        sequence = arguments.get("sequence")
+        if not sequence:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST, 
+                detail="Sequence is required"
+            )
+        
+        start_time = time.time()
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".fasta") as temp_file:
+            try:
+                fasta_content = f">sequence\n{sequence.strip()}\n"
+                temp_file.write(fasta_content.encode("utf-8"))
+                temp_file.flush()
+                if not spider_service.validate_fasta_file(Path(temp_file.name)):
+                    raise HTTPException(
+                        status_code=status.HTTP_400_BAD_REQUEST,
+                        detail="Invalid sequence format",
+                    )
+                success, message, result = spider_service.run_spider_prediction(
+                    Path(temp_file.name)
+                )
+                if not success:
+                    raise HTTPException(
+                        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=message
+                    )
+                processing_time = time.time() - start_time
+                
+                if hasattr(result, 'label') and hasattr(result, 'probability'):
+                    prediction = result.label
+                    probability = result.probability
+                else:
+                    prediction = 'Unknown'
+                    probability = 'Unknown'
+                
+                result_text = f"""
+SPIDER Prediction Results:
+- Status: Success
+- Prediction: {prediction}
+- Probability: {probability}
+- Message: {message}
+- Processing Time: {round(processing_time, 2)}s
+"""
+                return {
+                    "content": [
+                        {
+                            "type": "text",
+                            "text": result_text
+                        }
+                    ]
+                }
+            finally:
+                if os.path.exists(temp_file.name):
+                    os.unlink(temp_file.name)
+    
+    elif tool_name == "get_tool_info":
+        tool_info = spider_service.get_tool_info()
+        info_text = f"""
+SPIDER Tool Information:
+- Name: {tool_info.get('name', 'Unknown')}
+- Version: {tool_info.get('version', 'Unknown')}
+- Description: {tool_info.get('description', 'Unknown')}
+- Input Format: {tool_info.get('input_format', 'Unknown')}
+- Output Format: {tool_info.get('output_format', 'Unknown')}
+"""
+        return {
+            "content": [
+                {
+                    "type": "text",
+                    "text": info_text
+                }
+            ]
+        }
+    
+    else:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Unknown tool: {tool_name}"
+        )
 
 
 @app.exception_handler(HTTPException)

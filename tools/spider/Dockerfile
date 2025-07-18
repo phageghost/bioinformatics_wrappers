@@ -45,7 +45,10 @@ RUN micromamba create -n spider python=3.9 -y && \
 COPY api/ ./api/
 COPY app.py .
 COPY combined_server.py .
+COPY combined_starlette.py .
 COPY combined_fastapi_mcp.py .
+COPY run_combined.py .
+COPY run_combined_v2.py .
 
 # Create necessary directories
 RUN mkdir -p /app/spider_tool/input /app/spider_tool/output
@@ -63,4 +66,4 @@ HEALTHCHECK --interval=30s --timeout=30s --start-period=5s --retries=3 \
     CMD curl -f http://localhost:8000/api/v1/spider/health || exit 1
 
 # Run the application using the API environment
-CMD ["micromamba", "run", "-n", "api", "uvicorn", "app:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["micromamba", "run", "-n", "api", "python", "run_combined_v2.py"]
