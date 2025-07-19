@@ -57,6 +57,7 @@ ENV PYTHONPATH=/app
 ENV SPIDER_HOME=/app/spider_tool
 ENV SPIDER_ENV=spider
 ENV VERSION=${VERSION}
+ENV PORT=8000
 
 # Add labels for better image management
 LABEL org.opencontainers.image.title="SPIDER Bioinformatics API"
@@ -66,12 +67,9 @@ LABEL org.opencontainers.image.source="https://github.com/plenoi/SPIDER"
 LABEL org.opencontainers.image.licenses="MIT"
 LABEL maintainer="bioinformatics-wrappers"
 
-# Expose port
-EXPOSE 8000
-
-# Health check
+# Health check (tries PORT env var, then common ports)
 HEALTHCHECK --interval=30s --timeout=30s --start-period=5s --retries=3 \
-    CMD curl -f http://localhost:8000/api/v1/spider/health || exit 1
+    CMD bash -c 'port=${PORT:-8000}; curl -f http://localhost:$port/api/v1/spider/health' || exit 1
 
 # Run the application using the API environment
 CMD ["micromamba", "run", "-n", "api", "python", "run_combined_server.py"]

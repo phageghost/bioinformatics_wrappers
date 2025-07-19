@@ -39,12 +39,14 @@ class CombinedServer:
 
     async def run_fastapi(self):
         """Run the FastAPI server"""
-        logger.info("Starting FastAPI server with MCP-like endpoints...")
+        # Get port from environment variable, default to 8000
+        port = os.environ.get('PORT', '8000')
+        logger.info("Starting FastAPI server with MCP-like endpoints on port %s...", port)
         self.fastapi_process = subprocess.Popen([
             sys.executable, "-m", "uvicorn", "app:app", 
-            "--host", "0.0.0.0", "--port", "8000"
+            "--host", "0.0.0.0", "--port", port
         ])
-        logger.info("FastAPI server started with PID: %d", self.fastapi_process.pid)
+        logger.info("FastAPI server started with PID: %d on port %s", self.fastapi_process.pid, port)
         return self.fastapi_process
 
     async def monitor_process(self):
