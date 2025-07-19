@@ -4,6 +4,7 @@
 import requests
 import json
 import time
+import argparse
 from typing import Dict, Any
 
 class SpiderMCPEndpointTester:
@@ -328,7 +329,18 @@ class SpiderMCPEndpointTester:
 
 def main():
     """Main function"""
-    tester = SpiderMCPEndpointTester()
+    parser = argparse.ArgumentParser(description='Test SPIDER MCP-like endpoints')
+    parser.add_argument('--port', type=int, default=8000, 
+                       help='Port number for the API server (default: 8000)')
+    parser.add_argument('--host', type=str, default='localhost',
+                       help='Host for the API server (default: localhost)')
+    
+    args = parser.parse_args()
+    
+    base_url = f"http://{args.host}:{args.port}"
+    print(f"🧪 Testing SPIDER MCP-like endpoints at {base_url}")
+    
+    tester = SpiderMCPEndpointTester(base_url=base_url)
     results = tester.run_all_tests()
     
     # Exit with appropriate code
