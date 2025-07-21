@@ -39,10 +39,10 @@ bioinformatics_wrappers/
 ### SPIDER (Stacking-based Protein druggability prediction)
 * **Description**: Stacking-based ensemble learning framework for accurate prediction of druggable proteins
 * **Source**: https://github.com/plenoi/SPIDER
-* **Port**: 8000
+* **Port**: User-specified (defaults to 8000)
 * **Protocols**: REST API + MCP-like endpoints
-* **Input**: Protein sequences (FASTA format)
-* **Output**: Druggability predictions with confidence scores
+* **Input**: A single protein sequence (sequence only, no header)
+* **Output**: Druggability prediction for the sequence, expressed as a float in the range 0-1
 
 ## ⚡ Quick Start
 
