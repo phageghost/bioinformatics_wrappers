@@ -1,3 +1,42 @@
+"""
+SPIDER API - FastAPI Application Module
+
+This module provides a RESTful API wrapper for SPIDER (Stacking-based ensemble learning 
+framework for accurate prediction of druggable proteins). It includes both traditional 
+REST endpoints and MCP-like endpoints for AI agent integration.
+
+The application serves as a bridge between the SPIDER bioinformatics tool and modern
+web applications, providing:
+- RESTful API endpoints for protein druggability prediction
+- MCP-like endpoints for AI agent compatibility
+- Health monitoring and tool information endpoints
+- Comprehensive error handling and validation
+
+Key Features:
+- Single-port deployment (both REST and MCP-like endpoints)
+- Automatic sequence validation and FASTA format handling
+- Structured JSON responses with prediction results
+- CORS support for cross-origin requests
+- OpenAPI/Swagger documentation generation
+
+Endpoints:
+- GET /: Root endpoint with API information
+- GET /api/v1/spider/health: Health check endpoint
+- GET /api/v1/spider/info: Tool information endpoint
+- POST /api/v1/spider/predict: Protein druggability prediction
+- GET /mcp/tools: List available MCP-like tools
+- POST /mcp/call: Execute MCP-like tool calls
+
+Dependencies:
+- FastAPI: Web framework
+- MCP (optional): Model Context Protocol support
+- SPIDER Service: Core bioinformatics functionality
+
+Author: Bioinformatics Wrappers Team
+Version: 1.0.0
+License: MIT
+"""
+
 import os
 import time
 import tempfile
@@ -25,7 +64,8 @@ from api.spider_service import SpiderService
 # Initialize FastAPI app
 app = FastAPI(
     title="SPIDER API",
-    description="RESTful API wrapper for SPIDER: Stacking-based ensemble learning framework for accurate prediction of druggable proteins",
+    description="RESTful API wrapper for SPIDER: Stacking-based ensemble learning framework for\
+accurate prediction of druggable proteins",
     version="1.0.0",
     docs_url="/docs",
     redoc_url="/redoc",
@@ -49,7 +89,8 @@ if MCP_AVAILABLE:
     print("MCP is available, initializing FastMCP server...")
     mcp_server = FastMCP(
         name="spider-bioinformatics",
-        instructions="SPIDER: Stacking-based ensemble learning framework for accurate prediction of druggable proteins",
+        instructions="SPIDER: Stacking-based ensemble learning framework for accurate prediction of\
+druggable proteins",
     )
     print("FastMCP server initialized successfully")
 else:

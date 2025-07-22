@@ -1,3 +1,54 @@
+"""
+SPIDER MCP Server Module
+
+This module provides a Model Context Protocol (MCP) server implementation for the SPIDER
+bioinformatics tool. It enables AI agents to discover and interact with SPIDER tools
+through the standardized MCP protocol.
+
+The SpiderMCPServer class implements the MCP server interface, providing:
+- Tool discovery and schema definition
+- Tool execution with parameter validation
+- Error handling and result formatting
+- Support for both stdio and Streamable HTTP transports
+
+Key Features:
+- MCP 1.11.0 protocol compliance
+- Tool schema definition with JSON Schema
+- Async/await support for non-blocking operations
+- Comprehensive error handling and logging
+- Support for multiple transport protocols
+- Integration with SPIDER service layer
+
+MCP Tools:
+    - predict_druggability: Predict protein druggability from sequence
+    - get_tool_info: Retrieve tool metadata and information
+
+Transport Protocols:
+    - stdio: Standard input/output for local execution
+    - Streamable HTTP: HTTP-based transport for remote access
+
+Usage:
+    This module can be run as a standalone MCP server or integrated into larger
+    applications. It supports command-line arguments for transport selection
+    and configuration.
+
+Command Line Usage:
+    python -m api.mcp_server                    # Run stdio server
+    python -m api.mcp_server --streamable-http  # Run HTTP server
+    python -m api.mcp_server --port 8001        # Custom port
+
+Dependencies:
+    - mcp: Model Context Protocol library
+    - asyncio: Asynchronous I/O support
+    - pathlib: File path handling
+    - tempfile: Temporary file management
+    - logging: Debug and error logging
+
+Author: Bioinformatics Wrappers Team
+Version: 1.0.0
+License: MIT
+"""
+
 """MCP Server for SPIDER Bioinformatics Tool"""
 
 import asyncio

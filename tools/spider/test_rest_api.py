@@ -1,5 +1,53 @@
+"""
+SPIDER REST API Test Suite
+
+This module provides comprehensive testing for the SPIDER REST API endpoints.
+It includes automated tests for all API functionality including health checks,
+tool information, prediction endpoints, and error handling.
+
+The SpiderRESTAPITester class provides:
+- Automated testing of all REST API endpoints
+- Validation of response formats and data structures
+- Error condition testing and edge case handling
+- Performance timing and logging
+- Configurable test parameters (host, port)
+
+Test Coverage:
+- Health check endpoint (/api/v1/spider/health)
+- Tool information endpoint (/api/v1/spider/info)
+- Prediction endpoint with valid sequences
+- Prediction endpoint with invalid/missing parameters
+- Error handling and status codes
+- Response format validation
+- Documentation endpoint accessibility
+
+Key Features:
+- Command-line argument parsing for flexible testing
+- Detailed test result logging and reporting
+- Configurable base URL for different environments
+- Comprehensive error handling and reporting
+- Summary statistics and pass/fail reporting
+
+Usage:
+    python test_rest_api.py [--host HOST] [--port PORT]
+    
+    Examples:
+        python test_rest_api.py                    # Test localhost:8000
+        python test_rest_api.py --port 4000        # Test localhost:4000
+        python test_rest_api.py --host 192.168.1.100 --port 8000
+
+Dependencies:
+    - requests: HTTP client for API testing
+    - argparse: Command-line argument parsing
+    - json: JSON response parsing
+    - time: Performance timing
+
+Author: Bioinformatics Wrappers Team
+Version: 1.0.0
+License: MIT
+"""
+
 #!/usr/bin/env python3
-"""Comprehensive test script for SPIDER REST API endpoints"""
 
 import requests
 import json

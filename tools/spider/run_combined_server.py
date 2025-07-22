@@ -1,3 +1,42 @@
+"""
+Combined Server Entrypoint Module
+
+This module provides the main entrypoint for running the SPIDER API server in a Docker
+container. It manages the FastAPI application process with monitoring and graceful
+shutdown capabilities.
+
+The CombinedServer class handles:
+- Starting the FastAPI server with configurable port
+- Process monitoring and automatic restart on failure
+- Signal handling for graceful shutdown (SIGINT, SIGTERM)
+- Environment variable configuration (PORT)
+- Logging and error reporting
+
+Key Features:
+- Environment-based port configuration (defaults to 8000)
+- Automatic process restart on failure
+- Graceful shutdown with timeout handling
+- Comprehensive logging for Docker environments
+- Signal handling for container orchestration
+
+Usage:
+    This module is typically executed as the main entrypoint in Docker containers.
+    It reads the PORT environment variable and starts the FastAPI server accordingly.
+
+Environment Variables:
+    PORT: Server port (default: 8000)
+
+Dependencies:
+    - asyncio: Asynchronous I/O
+    - subprocess: Process management
+    - uvicorn: ASGI server for FastAPI
+    - signal: Signal handling
+
+Author: Bioinformatics Wrappers Team
+Version: 1.0.0
+License: MIT
+"""
+
 #!/usr/bin/env python3
 """Combined server entrypoint - runs FastAPI with MCP-like endpoints"""
 

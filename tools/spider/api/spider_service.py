@@ -1,3 +1,51 @@
+"""
+SPIDER Service Module
+
+This module provides the core service layer for integrating with the SPIDER bioinformatics
+tool. It handles the execution of SPIDER predictions, file management, and result parsing.
+
+The SpiderService class serves as the primary interface between the API layer and the
+underlying SPIDER tool, providing:
+- FASTA file validation and processing
+- SPIDER tool execution in conda environment
+- Result parsing and data structure conversion
+- Error handling and logging
+- Tool information and metadata
+
+Key Features:
+- Automatic FASTA format validation
+- Secure subprocess execution with timeouts
+- Comprehensive error handling and logging
+- Result parsing with type conversion
+- Tool metadata and information retrieval
+- Directory management and file operations
+
+SPIDER Integration:
+- Uses micromamba for conda environment management
+- Executes SPIDER in the 'spider' conda environment
+- Manages input/output directories automatically
+- Handles SPIDER-specific file formats and outputs
+
+Methods:
+    - validate_fasta_file(): Validates FASTA format and amino acid sequences
+    - run_spider_prediction(): Executes SPIDER and returns prediction results
+    - _parse_spider_results(): Parses SPIDER output files into structured data
+    - get_tool_info(): Returns tool metadata and information
+
+Environment Variables:
+    SPIDER_HOME: Path to SPIDER installation (default: /app/spider_tool)
+
+Dependencies:
+    - subprocess: Tool execution
+    - pathlib: File path handling
+    - shutil: File operations
+    - logging: Debug and error logging
+
+Author: Bioinformatics Wrappers Team
+Version: 1.0.0
+License: MIT
+"""
+
 import os
 import sys
 import subprocess

@@ -1,5 +1,59 @@
+"""
+SPIDER MCP-like Endpoints Test Suite
+
+This module provides comprehensive testing for the SPIDER MCP-like endpoints that
+enable AI agent integration. It tests the MCP-compatible interface that allows
+AI agents to discover and call SPIDER tools programmatically.
+
+The SpiderMCPEndpointTester class provides:
+- Automated testing of MCP-like endpoint functionality
+- Tool discovery and schema validation testing
+- Tool execution with various input parameters
+- Error handling and edge case testing
+- Response format validation for AI agent compatibility
+
+Test Coverage:
+- Tool listing endpoint (/mcp/tools)
+- Tool schema validation and structure
+- predict_druggability tool execution
+- get_tool_info tool execution
+- Invalid tool name handling
+- Malformed request handling
+- Missing Content-Type header handling
+- Response format validation for MCP compatibility
+
+Key Features:
+- Command-line argument parsing for flexible testing
+- Detailed test result logging and reporting
+- Configurable base URL for different environments
+- Comprehensive error handling and reporting
+- MCP protocol compliance validation
+- Summary statistics and pass/fail reporting
+
+MCP-like Endpoints:
+- GET /mcp/tools: List available tools with schemas
+- POST /mcp/call: Execute tools with JSON arguments
+
+Usage:
+    python test_mcp_endpoints.py [--host HOST] [--port PORT]
+    
+    Examples:
+        python test_mcp_endpoints.py                    # Test localhost:8000
+        python test_mcp_endpoints.py --port 4000        # Test localhost:4000
+        python test_mcp_endpoints.py --host 192.168.1.100 --port 8000
+
+Dependencies:
+    - requests: HTTP client for API testing
+    - argparse: Command-line argument parsing
+    - json: JSON request/response handling
+    - time: Performance timing
+
+Author: Bioinformatics Wrappers Team
+Version: 1.0.0
+License: MIT
+"""
+
 #!/usr/bin/env python3
-"""Comprehensive test script for SPIDER MCP-like endpoints"""
 
 import requests
 import json
