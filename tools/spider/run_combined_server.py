@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 """
 Combined Server Entrypoint Module
 
@@ -37,29 +38,26 @@ Version: 1.0.0
 License: MIT
 """
 
-#!/usr/bin/env python3
-"""Combined server entrypoint - runs FastAPI with MCP-like endpoints"""
-
 import asyncio
 import logging
 import subprocess
 import sys
 import signal
 import os
-from pathlib import Path
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
 class CombinedServer:
+    """Manages FastAPI server process with monitoring and graceful shutdown capabilities."""    
     def __init__(self):
         self.fastapi_process = None
         self.running = True
 
-    def signal_handler(self, signum, frame):
+    def signal_handler(self, signum, frame):  # pylint: disable=unused-argument
         """Handle shutdown signals"""
-        logger.info(f"Received signal {signum}, shutting down...")
+        logger.info("Received signal %d, shutting down...", signum)
         self.running = False
         self.shutdown()
 

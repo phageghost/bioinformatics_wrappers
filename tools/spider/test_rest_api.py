@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 """
 SPIDER REST API Test Suite
 
@@ -47,13 +48,11 @@ Version: 1.0.0
 License: MIT
 """
 
-#!/usr/bin/env python3
 
-import requests
-import json
-import time
 import argparse
 from typing import Dict, Any
+
+import requests
 
 
 class SpiderRESTAPITester:
@@ -100,7 +99,7 @@ class SpiderRESTAPITester:
                     f"HTTP {response.status_code}: {response.text}",
                 )
                 return False
-        except Exception as e:
+        except (requests.RequestException, ValueError) as e:
             self.log_test("Health Check", False, f"Exception: {str(e)}")
             return False
 
@@ -126,7 +125,7 @@ class SpiderRESTAPITester:
                     f"HTTP {response.status_code}: {response.text}",
                 )
                 return False
-        except Exception as e:
+        except (requests.RequestException, ValueError) as e:
             self.log_test("Root Endpoint", False, f"Exception: {str(e)}")
             return False
 
@@ -152,7 +151,7 @@ class SpiderRESTAPITester:
                     "Tool Info", False, f"HTTP {response.status_code}: {response.text}"
                 )
                 return False
-        except Exception as e:
+        except (requests.RequestException, ValueError) as e:
             self.log_test("Tool Info", False, f"Exception: {str(e)}")
             return False
 
@@ -180,7 +179,8 @@ class SpiderRESTAPITester:
                         self.log_test(
                             "Prediction (Valid)",
                             True,
-                            f"Status: {data['status']}, Processing Time: {data['processing_time']}s",
+                            (f"Status: {data['status']}, "
+                             f"Processing Time: {data['processing_time']}s"),
                         )
                         return True
                     else:
@@ -202,7 +202,7 @@ class SpiderRESTAPITester:
                     f"HTTP {response.status_code}: {response.text}",
                 )
                 return False
-        except Exception as e:
+        except (requests.RequestException, ValueError) as e:
             self.log_test("Prediction (Valid)", False, f"Exception: {str(e)}")
             return False
 
@@ -227,7 +227,7 @@ class SpiderRESTAPITester:
                     f"Expected 400, got {response.status_code}",
                 )
                 return False
-        except Exception as e:
+        except (requests.RequestException, ValueError) as e:
             self.log_test("Prediction (Invalid - Empty)", False, f"Exception: {str(e)}")
             return False
 
@@ -249,7 +249,7 @@ class SpiderRESTAPITester:
                     f"Expected 422, got {response.status_code}",
                 )
                 return False
-        except Exception as e:
+        except (requests.RequestException, ValueError) as e:
             self.log_test(
                 "Prediction (Invalid - Missing)", False, f"Exception: {str(e)}"
             )
@@ -266,7 +266,7 @@ class SpiderRESTAPITester:
             else:
                 self.log_test("OpenAPI JSON", False, f"HTTP {response.status_code}")
                 return False
-        except Exception as e:
+        except (requests.RequestException, ValueError) as e:
             self.log_test("OpenAPI JSON", False, f"Exception: {str(e)}")
             return False
 
@@ -286,7 +286,7 @@ class SpiderRESTAPITester:
                     "404 Handling", False, f"Expected 404, got {response.status_code}"
                 )
                 return False
-        except Exception as e:
+        except (requests.RequestException, ValueError) as e:
             self.log_test("404 Handling", False, f"Exception: {str(e)}")
             return False
 

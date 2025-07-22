@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 """
 SPIDER MCP-like Endpoints Test Suite
 
@@ -53,13 +54,10 @@ Version: 1.0.0
 License: MIT
 """
 
-#!/usr/bin/env python3
 
-import requests
-import json
-import time
 import argparse
 from typing import Dict, Any
+import requests
 
 
 class SpiderMCPEndpointTester:
@@ -113,7 +111,7 @@ class SpiderMCPEndpointTester:
                     "List Tools", False, f"HTTP {response.status_code}: {response.text}"
                 )
                 return False
-        except Exception as e:
+        except (requests.RequestException, ValueError) as e:
             self.log_test("List Tools", False, f"Exception: {str(e)}")
             return False
 
@@ -141,7 +139,7 @@ class SpiderMCPEndpointTester:
             else:
                 self.log_test("Tool Schemas", False, f"HTTP {response.status_code}")
                 return False
-        except Exception as e:
+        except (requests.RequestException, ValueError) as e:
             self.log_test("Tool Schemas", False, f"Exception: {str(e)}")
             return False
 
@@ -193,7 +191,7 @@ class SpiderMCPEndpointTester:
                     f"HTTP {response.status_code}: {response.text}",
                 )
                 return False
-        except Exception as e:
+        except (requests.RequestException, ValueError) as e:
             self.log_test("Get Tool Info Call", False, f"Exception: {str(e)}")
             return False
 
@@ -256,7 +254,7 @@ class SpiderMCPEndpointTester:
                     f"HTTP {response.status_code}: {response.text}",
                 )
                 return False
-        except Exception as e:
+        except (requests.RequestException, ValueError) as e:
             self.log_test("Predict Druggability (Valid)", False, f"Exception: {str(e)}")
             return False
 
@@ -283,7 +281,7 @@ class SpiderMCPEndpointTester:
                     f"Expected 400, got {response.status_code}",
                 )
                 return False
-        except Exception as e:
+        except (requests.RequestException, ValueError) as e:
             self.log_test(
                 "Predict Druggability (Invalid - Empty)", False, f"Exception: {str(e)}"
             )
@@ -312,7 +310,7 @@ class SpiderMCPEndpointTester:
                     f"Expected 400, got {response.status_code}",
                 )
                 return False
-        except Exception as e:
+        except (requests.RequestException, ValueError) as e:
             self.log_test(
                 "Predict Druggability (Invalid - Missing)",
                 False,
@@ -341,7 +339,7 @@ class SpiderMCPEndpointTester:
                     f"Expected 400, got {response.status_code}",
                 )
                 return False
-        except Exception as e:
+        except (requests.RequestException, ValueError) as e:
             self.log_test("Unknown Tool Call", False, f"Exception: {str(e)}")
             return False
 
@@ -363,7 +361,7 @@ class SpiderMCPEndpointTester:
                     "Malformed JSON", False, f"Expected 422, got {response.status_code}"
                 )
                 return False
-        except Exception as e:
+        except (requests.RequestException, ValueError) as e:
             self.log_test("Malformed JSON", False, f"Exception: {str(e)}")
             return False
 
@@ -388,7 +386,7 @@ class SpiderMCPEndpointTester:
                     f"Unexpected status: {response.status_code}",
                 )
                 return False
-        except Exception as e:
+        except (requests.RequestException, ValueError) as e:
             self.log_test("Missing Content-Type", False, f"Exception: {str(e)}")
             return False
 
@@ -422,7 +420,7 @@ class SpiderMCPEndpointTester:
                     "MCP Endpoint Structure", False, f"HTTP {response.status_code}"
                 )
                 return False
-        except Exception as e:
+        except (requests.RequestException, ValueError) as e:
             self.log_test("MCP Endpoint Structure", False, f"Exception: {str(e)}")
             return False
 

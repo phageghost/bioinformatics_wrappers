@@ -103,10 +103,9 @@ else:
         description="Predict druggability of a protein sequence using SPIDER",
     )
     async def predict_druggability(sequence: str):
-        """Predict druggability of a protein sequence"""
+        """Predict druggability of a protein sequence using SPIDER."""
         if not sequence:
             return [TextContent(type="text", text="Error: Sequence is required")]
-
         with tempfile.NamedTemporaryFile(delete=False, suffix=".fasta") as temp_file:
             try:
                 fasta_content = f">sequence\n{sequence.strip()}\n"
@@ -114,20 +113,13 @@ else:
                 temp_file.flush()
 
                 if not spider_service.validate_fasta_file(Path(temp_file.name)):
-                    return [
-                        TextContent(type="text", text="Error: Invalid sequence format")
-                    ]
+                    return [TextContent(type="text", text="Error: Invalid sequence format")]
 
                 success, message, result = spider_service.run_spider_prediction(
                     Path(temp_file.name)
                 )
                 if not success:
-                    return [
-                        TextContent(
-                            type="text",
-                            text=f"Error: SPIDER prediction failed: {message}",
-                        )
-                    ]
+                    return [TextContent(type="text", text=f"Error: SPIDER prediction failed: {message}")]
 
                 if hasattr(result, "label") and hasattr(result, "probability"):
                     prediction = result.label
@@ -154,7 +146,7 @@ SPIDER Prediction Results:
         description="Get information about the SPIDER tool",
     )
     async def get_tool_info():
-        """Get information about the SPIDER tool"""
+        """Get information about the SPIDER tool."""
         tool_info = spider_service.get_tool_info()
         info_text = f"""
 SPIDER Tool Information:
@@ -267,7 +259,7 @@ async def predict_druggable_proteins(sequence: str):
 # MCP-like endpoints for AI agents
 @app.get("/mcp/tools")
 async def list_mcp_tools():
-    """List available MCP tools"""
+    """List available MCP-like tools for AI agent integration."""
     return {
         "tools": [
             {
@@ -297,7 +289,7 @@ async def list_mcp_tools():
 
 @app.post("/mcp/call")
 async def call_mcp_tool(request: dict):
-    """Call an MCP tool"""
+    """Call an MCP-like tool with the provided arguments."""
     tool_name = request.get("name")
     arguments = request.get("arguments", {})
 

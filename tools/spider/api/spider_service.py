@@ -107,7 +107,7 @@ class SpiderService:
                         return False
 
             return True
-        except Exception as e:
+        except (OSError, IOError, UnicodeDecodeError) as e:
             self.logger.error("Error validating FASTA file: %s", e)
             return False
 
@@ -180,8 +180,8 @@ class SpiderService:
             error_msg = "SPIDER prediction timed out"
             self.logger.error(error_msg)
             return False, error_msg, []
-        except Exception as e:
-            error_msg = f"Error running SPIDER: {str(e)}, {e.__traceback__}"
+        except (OSError, IOError, ValueError, RuntimeError) as e:
+            error_msg = f"Error running SPIDER: {str(e)}"
             self.logger.error(error_msg)
             return False, error_msg, []
 
@@ -200,7 +200,7 @@ class SpiderService:
             )
             return result
 
-        except Exception as e:
+        except (ValueError, IndexError, OSError, IOError) as e:
             self.logger.error("Error parsing SPIDER results: %s", e)
             return []
 
@@ -209,7 +209,8 @@ class SpiderService:
         return {
             "name": "SPIDER",
             "version": "1.0",
-            "description": "Stacking-based ensemble learning framework for accurate prediction of druggable proteins",
+            "description": "Stacking-based ensemble learning framework for accurate prediction of \
+druggable proteins",
             "input_format": "FASTA",
             "output_format": "CSV",
             "home_directory": str(self.spider_home),

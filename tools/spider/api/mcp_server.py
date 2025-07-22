@@ -49,7 +49,6 @@ Version: 1.0.0
 License: MIT
 """
 
-"""MCP Server for SPIDER Bioinformatics Tool"""
 
 import asyncio
 import logging
@@ -119,7 +118,7 @@ class SpiderMCPServer:
                     return await self._handle_get_tool_info(arguments)
                 else:
                     raise ValueError(f"Unknown tool: {name}")
-            except Exception as e:
+            except (ValueError, OSError, IOError) as e:
                 logger.error("Error in tool call %s: %s", name, str(e))
                 return [TextContent(type="text", text=f"Error: {str(e)}")]
 
@@ -157,7 +156,7 @@ SPIDER Prediction Results:
                 if os.path.exists(temp_file.name):
                     os.unlink(temp_file.name)
 
-    async def _handle_get_tool_info(self, arguments: Dict[str, Any]):
+    async def _handle_get_tool_info(self, arguments: Dict[str, Any]):  # pylint: disable=unused-argument
         tool_info = self.spider_service.get_tool_info()
         info_text = f"""
 SPIDER Tool Information:
@@ -170,6 +169,7 @@ SPIDER Tool Information:
         return [TextContent(type="text", text=info_text)]
 
     async def run_stdio(self):
+        """Run the MCP server using stdio transport."""
         async with stdio_server() as (read_stream, write_stream):
             await self.server.run(
                 read_stream,
@@ -185,6 +185,7 @@ SPIDER Tool Information:
             )
 
     async def run_streamable_http(self, host: str = "0.0.0.0", port: int = 8001):
+        """Run the MCP server using streamable HTTP transport."""
         transport = StreamableHTTPServerTransport(mcp_session_id=None)
         logger.info("MCP Streamable HTTP server running on http://%s:%d", host, port)
         async with transport.connect() as (read_stream, write_stream):
@@ -195,7 +196,8 @@ SPIDER Tool Information:
                     server_name="spider-bioinformatics",
                     server_version="1.0.0",
                     capabilities=self.server.get_capabilities(
-                        notification_options=NotificationOptions(),  # Use an empty NotificationOptions object
+                        # Use an empty NotificationOptions object
+                        notification_options=NotificationOptions(),
                         experimental_capabilities={},
                     ),
                 ),
@@ -203,6 +205,7 @@ SPIDER Tool Information:
 
 
 def parse_args():
+    """Parse command-line arguments for the MCP server."""
     parser = argparse.ArgumentParser(description="SPIDER MCP Server")
     parser.add_argument(
         "--streamable-http", action="store_true", help="Run Streamable HTTP server"
@@ -213,6 +216,7 @@ def parse_args():
 
 
 async def main():
+    """Main entry point for running the SPIDER MCP server."""
     args = parse_args()
     server = SpiderMCPServer()
     if args.streamable_http:
