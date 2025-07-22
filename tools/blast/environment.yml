@@ -1,0 +1,20 @@
+name: api
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.12
+  - fastapi
+  - uvicorn
+  - python-multipart
+  - pydantic
+  - aiofiles 
+  
+name: blast
+channels:
+  - conda-forge
+  - defaults
+  - bioconda
+dependencies:
+  - python=3.12
+  - blast

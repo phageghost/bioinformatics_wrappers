@@ -36,6 +36,10 @@ COPY requirements.txt .
 RUN micromamba create -n api python=3.12 -y && \
     micromamba run -n api pip install --no-cache-dir -r requirements.txt
 
+# Alternative: Use conda channels directly
+# RUN micromamba create -n api python=3.12 -y && \
+#     micromamba install -n api -c conda-forge fastapi uvicorn python-multipart pydantic aiofiles -y
+
 # Clone SPIDER repository
 RUN git clone https://github.com/plenoi/SPIDER.git /app/spider_tool
 

@@ -21,4 +21,4 @@ Version: 1.0.0
 License: MIT
 """
 
-from . import models, spider_service
+from . import blast_service, models

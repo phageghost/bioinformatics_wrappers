@@ -7,7 +7,7 @@ ARG TARGETARCH
 # Set working directory
 WORKDIR /app
 
-# Install system dependencies including build tools
+Install system dependencies including build tools
 RUN apt-get update && apt-get install -y \
     git \
     wget \
@@ -32,17 +32,8 @@ RUN if [ "$TARGETARCH" = "arm64" ]; then \
 SHELL ["/bin/bash", "-c"]
 
 # Create API environment with Python 3.12 and API dependencies
-COPY requirements.txt .
-RUN micromamba create -n api python=3.12 -y && \
-    micromamba run -n api pip install --no-cache-dir -r requirements.txt
-
-# Clone SPIDER repository
-RUN git clone https://github.com/plenoi/SPIDER.git /app/spider_tool
-
-# Create conda environment for SPIDER with Python 3.9
-COPY requirements-spider.txt .
-RUN micromamba create -n spider python=3.9 -y && \
-    micromamba run -n spider pip install --no-cache-dir -r requirements-spider.txt
+COPY environment.yml .
+RUN micromamba env create -f environment.yml
 
 # Copy API wrapper files
 COPY api/ ./api/
@@ -54,16 +45,13 @@ RUN mkdir -p /app/spider_tool/input /app/spider_tool/output
 
 # Set environment variables
 ENV PYTHONPATH=/app
-ENV SPIDER_HOME=/app/spider_tool
-ENV SPIDER_ENV=spider
 ENV VERSION=${VERSION}
 ENV PORT=8000
 
 # Add labels for better image management
-LABEL org.opencontainers.image.title="SPIDER Bioinformatics API"
-LABEL org.opencontainers.image.description="REST API and MCP-like endpoints for SPIDER protein druggability prediction"
+LABEL org.opencontainers.image.title="BLAST API"
+LABEL org.opencontainers.image.description="REST API and MCP-like endpoints for BLAST sequence search"
 LABEL org.opencontainers.image.version="${VERSION}"
-LABEL org.opencontainers.image.source="https://github.com/plenoi/SPIDER"
 LABEL org.opencontainers.image.licenses="MIT"
 LABEL maintainer="bioinformatics-wrappers"
 
