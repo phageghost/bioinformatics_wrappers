@@ -8,7 +8,6 @@ druggability prediction.
 Modules:
     - models: Pydantic data models for API requests and responses
     - spider_service: Core service layer for SPIDER tool integration
-    - mcp_server: MCP (Model Context Protocol) server implementation
 
 The API package serves as the bridge between the FastAPI web layer and the underlying
 SPIDER bioinformatics tool, providing:
@@ -22,4 +21,4 @@ Version: 1.0.0
 License: MIT
 """
 
-from . import models, spider_service, mcp_server
+from . import models, spider_service
