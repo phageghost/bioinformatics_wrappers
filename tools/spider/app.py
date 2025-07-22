@@ -157,7 +157,7 @@ async def health_check():
 
 
 @app.get("/api/v1/spider/info", response_model=dict)
-async def get_tool_info():
+async def get_tool_info_rest():
     """Get information about the SPIDER tool"""
     return spider_service.get_tool_info()
 
