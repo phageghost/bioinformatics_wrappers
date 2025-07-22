@@ -4,4 +4,3 @@ uvicorn
 python-multipart
 pydantic
 aiofiles
-mcp==1.11.0

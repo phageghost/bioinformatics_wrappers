@@ -47,17 +47,6 @@ from fastapi import FastAPI, HTTPException, status
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 
-# Try to import MCP server
-try:
-    from mcp.server.fastmcp import FastMCP
-    from mcp.types import TextContent
-
-    MCP_AVAILABLE = True
-except ImportError as e:
-    MCP_AVAILABLE = False
-    FastMCP = None
-    print(f"MCP not available: {e}")
-
 from api.models import HealthResponse, PredictionResponse
 from api.spider_service import SpiderService
 
@@ -82,92 +71,6 @@ app.add_middleware(
 
 # Initialize SPIDER service
 spider_service = SpiderService()
-
-# Initialize MCP server if available
-mcp_server = None
-if MCP_AVAILABLE:
-    print("MCP is available, initializing FastMCP server...")
-    mcp_server = FastMCP(
-        name="spider-bioinformatics",
-        instructions="SPIDER: Stacking-based ensemble learning framework for accurate prediction of\
-druggable proteins",
-    )
-    print("FastMCP server initialized successfully")
-else:
-    print("MCP is not available")
-
-    # Add tools to MCP server
-    @mcp_server.tool(
-        name="predict_druggability",
-        title="Predict Druggability",
-        description="Predict druggability of a protein sequence using SPIDER",
-    )
-    async def predict_druggability(sequence: str):
-        """Predict druggability of a protein sequence using SPIDER."""
-        if not sequence:
-            return [TextContent(type="text", text="Error: Sequence is required")]
-        with tempfile.NamedTemporaryFile(delete=False, suffix=".fasta") as temp_file:
-            try:
-                fasta_content = f">sequence\n{sequence.strip()}\n"
-                temp_file.write(fasta_content.encode("utf-8"))
-                temp_file.flush()
-
-                if not spider_service.validate_fasta_file(Path(temp_file.name)):
-                    return [TextContent(type="text", text="Error: Invalid sequence format")]
-
-                success, message, result = spider_service.run_spider_prediction(
-                    Path(temp_file.name)
-                )
-                if not success:
-                    return [TextContent(type="text", text=f"Error: SPIDER prediction failed: {message}")]
-
-                if hasattr(result, "label") and hasattr(result, "probability"):
-                    prediction = result.label
-                    probability = result.probability
-                else:
-                    prediction = "Unknown"
-                    probability = "Unknown"
-
-                result_text = f"""
-SPIDER Prediction Results:
-- Status: Success
-- Prediction: {prediction}
-- Probability: {probability}
-- Message: {message}
-"""
-                return [TextContent(type="text", text=result_text)]
-            finally:
-                if os.path.exists(temp_file.name):
-                    os.unlink(temp_file.name)
-
-    @mcp_server.tool(
-        name="get_tool_info",
-        title="Get Tool Info",
-        description="Get information about the SPIDER tool",
-    )
-    async def get_tool_info():
-        """Get information about the SPIDER tool."""
-        tool_info = spider_service.get_tool_info()
-        info_text = f"""
-SPIDER Tool Information:
-- Name: {tool_info.get('name', 'Unknown')}
-- Version: {tool_info.get('version', 'Unknown')}
-- Description: {tool_info.get('description', 'Unknown')}
-- Input Format: {tool_info.get('input_format', 'Unknown')}
-- Output Format: {tool_info.get('output_format', 'Unknown')}
-"""
-        return [TextContent(type="text", text=info_text)]
-
-
-# Mount MCP server if available (disabled for now)
-if MCP_AVAILABLE and mcp_server:
-    print("Creating MCP streamable HTTP app...")
-    mcp_app = mcp_server.streamable_http_app()
-    print("MCP app created but not mounted - using MCP-like endpoints instead")
-    # app.mount("/mcp", mcp_app)  # Disabled to avoid route conflicts
-    print("MCP server not mounted - using MCP-like endpoints")
-else:
-    print("MCP server not available - running REST API only")
 
 
 @app.get("/", response_model=dict)
