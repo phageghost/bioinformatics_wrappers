@@ -23,10 +23,12 @@ from .spider_service import SpiderService
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+
 class SpiderMCPServer:
     """MCP Server for SPIDER protein druggability prediction"""
+
     def __init__(self):
-        self.server = Server('spider-bioinformatics')
+        self.server = Server("spider-bioinformatics")
         self.spider_service = SpiderService()
         self._setup_handlers()
 
@@ -35,70 +37,63 @@ class SpiderMCPServer:
         async def handle_list_tools():
             return [
                 Tool(
-                    name='predict_druggability',
-                    title='Predict Druggability',
-                    description='Predict druggability of a protein sequence using SPIDER',
+                    name="predict_druggability",
+                    title="Predict Druggability",
+                    description="Predict druggability of a protein sequence using SPIDER",
                     inputSchema={
-                        'type': 'object',
-                        'properties': {
-                            'sequence': {
-                                'type': 'string',
-                                'description': 'Protein sequence to analyze'
+                        "type": "object",
+                        "properties": {
+                            "sequence": {
+                                "type": "string",
+                                "description": "Protein sequence to analyze",
                             }
                         },
-                        'required': ['sequence']
-                    }
+                        "required": ["sequence"],
+                    },
                 ),
                 Tool(
-                    name='get_tool_info',
-                    title='Get Tool Info',
-                    description='Get information about the SPIDER tool',
-                    inputSchema={
-                        'type': 'object',
-                        'properties': {},
-                        'required': []
-                    }
-                )
+                    name="get_tool_info",
+                    title="Get Tool Info",
+                    description="Get information about the SPIDER tool",
+                    inputSchema={"type": "object", "properties": {}, "required": []},
+                ),
             ]
 
         @self.server.call_tool()
         async def handle_call_tool(name: str, arguments: Dict[str, Any]):
             try:
-                if name == 'predict_druggability':
+                if name == "predict_druggability":
                     return await self._handle_predict_druggability(arguments)
-                elif name == 'get_tool_info':
+                elif name == "get_tool_info":
                     return await self._handle_get_tool_info(arguments)
                 else:
-                    raise ValueError(f'Unknown tool: {name}')
+                    raise ValueError(f"Unknown tool: {name}")
             except Exception as e:
-                logger.error('Error in tool call %s: %s', name, str(e))
-                return [
-                    TextContent(
-                        type='text',
-                        text=f'Error: {str(e)}'
-                    )
-                ]
+                logger.error("Error in tool call %s: %s", name, str(e))
+                return [TextContent(type="text", text=f"Error: {str(e)}")]
 
     async def _handle_predict_druggability(self, arguments: Dict[str, Any]):
-        sequence = arguments.get('sequence')
+        sequence = arguments.get("sequence")
         if not sequence:
-            raise ValueError('Sequence is required')
-        with tempfile.NamedTemporaryFile(delete=False, suffix='.fasta') as temp_file:
+            raise ValueError("Sequence is required")
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".fasta") as temp_file:
             try:
-                fasta_content = f'>sequence\n{sequence.strip()}\n'
-                temp_file.write(fasta_content.encode('utf-8'))
+                fasta_content = f">sequence\n{sequence.strip()}\n"
+                temp_file.write(fasta_content.encode("utf-8"))
                 temp_file.flush()
                 if not self.spider_service.validate_fasta_file(Path(temp_file.name)):
-                    raise ValueError('Invalid sequence format')
-                success, message, result = self.spider_service.run_spider_prediction(Path(temp_file.name))
+                    raise ValueError("Invalid sequence format")
+                success, message, result = self.spider_service.run_spider_prediction(
+                    Path(temp_file.name)
+                )
                 if not success:
-                    raise ValueError(f'SPIDER prediction failed: {message}')
-                if hasattr(result, 'label') and hasattr(result, 'probability'):
+                    raise ValueError(f"SPIDER prediction failed: {message}")
+                if hasattr(result, "label") and hasattr(result, "probability"):
                     prediction = result.label
                     probability = result.probability
                 else:
-                    prediction = 'Unknown'
-                    probability = 'Unknown'
+                    prediction = "Unknown"
+                    probability = "Unknown"
                 result_text = f"""
 SPIDER Prediction Results:
 - Status: Success
@@ -106,12 +101,7 @@ SPIDER Prediction Results:
 - Probability: {probability}
 - Message: {message}
 """
-                return [
-                    TextContent(
-                        type='text',
-                        text=result_text
-                    )
-                ]
+                return [TextContent(type="text", text=result_text)]
             finally:
                 if os.path.exists(temp_file.name):
                     os.unlink(temp_file.name)
@@ -126,12 +116,7 @@ SPIDER Tool Information:
 - Input Format: {tool_info.get('input_format', 'Unknown')}
 - Output Format: {tool_info.get('output_format', 'Unknown')}
 """
-        return [
-            TextContent(
-                type='text',
-                text=info_text
-            )
-        ]
+        return [TextContent(type="text", text=info_text)]
 
     async def run_stdio(self):
         async with stdio_server() as (read_stream, write_stream):
@@ -139,8 +124,8 @@ SPIDER Tool Information:
                 read_stream,
                 write_stream,
                 InitializationOptions(
-                    server_name='spider-bioinformatics',
-                    server_version='1.0.0',
+                    server_name="spider-bioinformatics",
+                    server_version="1.0.0",
                     capabilities=self.server.get_capabilities(
                         notification_options=NotificationOptions(),
                         experimental_capabilities={},
@@ -148,16 +133,16 @@ SPIDER Tool Information:
                 ),
             )
 
-    async def run_streamable_http(self, host: str = '0.0.0.0', port: int = 8001):
+    async def run_streamable_http(self, host: str = "0.0.0.0", port: int = 8001):
         transport = StreamableHTTPServerTransport(mcp_session_id=None)
-        logger.info('MCP Streamable HTTP server running on http://%s:%d', host, port)
+        logger.info("MCP Streamable HTTP server running on http://%s:%d", host, port)
         async with transport.connect() as (read_stream, write_stream):
             await self.server.run(
                 read_stream,
                 write_stream,
                 InitializationOptions(
-                    server_name='spider-bioinformatics',
-                    server_version='1.0.0',
+                    server_name="spider-bioinformatics",
+                    server_version="1.0.0",
                     capabilities=self.server.get_capabilities(
                         notification_options=NotificationOptions(),  # Use an empty NotificationOptions object
                         experimental_capabilities={},
@@ -165,12 +150,16 @@ SPIDER Tool Information:
                 ),
             )
 
+
 def parse_args():
-    parser = argparse.ArgumentParser(description='SPIDER MCP Server')
-    parser.add_argument('--streamable-http', action='store_true', help='Run Streamable HTTP server')
-    parser.add_argument('--host', default='0.0.0.0', help='host (default: 0.0.0.0)')
-    parser.add_argument('--port', type=int, default=8001, help='port (default: 8001)')
+    parser = argparse.ArgumentParser(description="SPIDER MCP Server")
+    parser.add_argument(
+        "--streamable-http", action="store_true", help="Run Streamable HTTP server"
+    )
+    parser.add_argument("--host", default="0.0.0.0", help="host (default: 0.0.0.0)")
+    parser.add_argument("--port", type=int, default=8001, help="port (default: 8001)")
     return parser.parse_args()
+
 
 async def main():
     args = parse_args()
@@ -180,5 +169,6 @@ async def main():
     else:
         await server.run_stdio()
 
-if __name__ == '__main__':
-    asyncio.run(main()) 
+
+if __name__ == "__main__":
+    asyncio.run(main())

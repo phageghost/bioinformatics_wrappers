@@ -71,12 +71,14 @@ class SpiderService:
             # Copy input file to SPIDER input directory
             input_fpath = self.input_path.joinpath("seq.fasta")
             shutil.copy2(fasta_file_path, input_fpath)
-            
+
             # Debug: Check what was written to the file
             with open(input_fpath, "r", encoding="utf-8") as f:
                 file_content = f.read()
                 self.logger.info("Input file path: %s", input_fpath)
-                self.logger.info("File content written to SPIDER input: %s", file_content)
+                self.logger.info(
+                    "File content written to SPIDER input: %s", file_content
+                )
                 self.logger.info("File size: %d bytes", len(file_content))
 
             # Change to SPIDER directory
@@ -91,7 +93,7 @@ class SpiderService:
             self.logger.info("SPIDER model path: %s", self.model_path)
             self.logger.info("SPIDER input file: %s", input_fpath)
             result = subprocess.run(
-                ['micromamba', 'run', '-n', 'spider', 'python', 'spider.py'],
+                ["micromamba", "run", "-n", "spider", "python", "spider.py"],
                 capture_output=True,
                 text=True,
                 timeout=300,  # 5 minute timeout
@@ -139,17 +141,17 @@ class SpiderService:
         """Parse SPIDER output CSV file into structured results"""
         try:
             output = output_file.read_text().strip()
-            output = output.split('\n')
+            output = output.split("\n")
             if len(output) > 1:
                 raise ValueError("SPIDER output contains multiple lines")
-            
-            splat = output[0].split(',')
+
+            splat = output[0].split(",")
             result = PredictionResult(
-                    label=splat[1],
-                    probability=float(splat[2]),
+                label=splat[1],
+                probability=float(splat[2]),
             )
             return result
-        
+
         except Exception as e:
             self.logger.error("Error parsing SPIDER results: %s", e)
             return []
