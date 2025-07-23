@@ -19,6 +19,12 @@ services:
     container_name: blast-api
     ports:
       - "8001:8000" 
+    environment:
+      - BLAST_DB_PATH=/blast_db
+    volumes:
+      - type: bind
+        source: ${BLAST_DB_PATH:?BLAST_DB_PATH environment variable is required}
+        target: /blast_db
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/api/v1/blastp/health"]
