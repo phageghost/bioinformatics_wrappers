@@ -10,8 +10,10 @@ import os
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+
 class CombinedServer:
-    """Manages FastAPI server process with monitoring and graceful shutdown capabilities."""    
+    """Manages FastAPI server process with monitoring and graceful shutdown capabilities."""
+
     def __init__(self):
         self.fastapi_process = None
         self.running = True

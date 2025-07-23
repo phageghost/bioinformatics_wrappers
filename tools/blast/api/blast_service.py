@@ -84,7 +84,9 @@ class BLASTpService:
         cwd = os.getcwd()
         os.chdir(self.db_path)
 
-        cmd = self._prefix_mm_env(["update_blastdb.pl", "--decompress", "--verbose", str(db_name)])
+        cmd = self._prefix_mm_env(
+            ["update_blastdb.pl", "--decompress", "--verbose", str(db_name)]
+        )
         self.logger.info("Running update_blastdb.pl with command: %s", cmd)
         output = subprocess.run(cmd, check=True, capture_output=True, text=True)
         self.logger.info("Output: %s", output)
@@ -102,7 +104,7 @@ class BLASTpService:
 
         output_fpath = self.output_path.joinpath("blastp_output.txt")
         db_fpath = self.db_path.joinpath(db_name)
-        
+
         if not self.validate_fasta_protein_file(fasta_fpath):
             return False, "Invalid or missing FASTA file", []
 
@@ -119,26 +121,29 @@ class BLASTpService:
             self.checked_dbs.add(db_name)
 
         # Build command
-        cmd = self._prefix_mm_env([
-            "blastp",
-            "-query",
-            str(fasta_fpath),
-            "-db",
-            str(db_fpath),
-            "-evalue",
-            str(evalue),
-            "-outfmt",
-            outfmt,
-            "-max_target_seqs",
-            str(max_target_seqs),
-            "-out",
-            str(output_fpath),
-        ])
+        cmd = self._prefix_mm_env(
+            [
+                "blastp",
+                "-query",
+                str(fasta_fpath),
+                "-db",
+                str(db_fpath),
+                "-evalue",
+                str(evalue),
+                "-outfmt",
+                outfmt,
+                "-max_target_seqs",
+                str(max_target_seqs),
+                "-out",
+                str(output_fpath),
+            ]
+        )
 
         self.logger.info("Running BLASTp search with command: %s", cmd)
 
         try:
-            result = subprocess.run(cmd,
+            result = subprocess.run(
+                cmd,
                 capture_output=True,
                 text=True,
                 timeout=300,  # 5 minute timeout

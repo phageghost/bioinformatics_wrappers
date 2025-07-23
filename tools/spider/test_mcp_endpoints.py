@@ -37,7 +37,7 @@ MCP-like Endpoints:
 
 Usage:
     python test_mcp_endpoints.py [--host HOST] [--port PORT]
-    
+
     Examples:
         python test_mcp_endpoints.py                    # Test localhost:8000
         python test_mcp_endpoints.py --port 4000        # Test localhost:4000

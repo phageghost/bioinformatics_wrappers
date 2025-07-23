@@ -162,8 +162,8 @@ class BlastRESTAPITester:
                 "MKTVRQERLKSIVRILERSKEPVSGAQLAEELSVSRQVIVQDIAYLRSLGYNIVATPRGYVLAGG"
             )
             response = self.session.post(
-                f"{self.base_url}/api/v1/blastp/search", 
-                json={"sequence": sequence, "db_name": "pdbaa"}
+                f"{self.base_url}/api/v1/blastp/search",
+                json={"sequence": sequence, "db_name": "pdbaa"},
             )
             if response.status_code == 200:
                 data = response.json()
@@ -253,9 +253,7 @@ class BlastRESTAPITester:
                 )
                 return False
         except (requests.RequestException, ValueError) as e:
-            self.log_test(
-                "Search (Invalid - Missing)", False, f"Exception: {str(e)}"
-            )
+            self.log_test("Search (Invalid - Missing)", False, f"Exception: {str(e)}")
             return False
 
     def test_documentation_endpoints(self) -> bool:

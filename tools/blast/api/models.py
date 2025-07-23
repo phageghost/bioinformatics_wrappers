@@ -14,6 +14,7 @@ class HealthResponse(BaseModel):
 
 class SearchRequest(BaseModel):
     """Request model for BLASTp search"""
+
     sequence: str
     db_name: str = "nr"
     evalue: float = 1e-3

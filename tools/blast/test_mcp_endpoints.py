@@ -147,10 +147,7 @@ class BlastMCPEndpointTester:
             )
             payload = {
                 "name": "perform_blastp_search",
-                "arguments": {
-                    "sequence": sequence,
-                    "db_name": "pdbaa"
-                },
+                "arguments": {"sequence": sequence, "db_name": "pdbaa"},
             }
             response = self.session.post(
                 f"{self.base_url}/mcp/call",
@@ -202,7 +199,9 @@ class BlastMCPEndpointTester:
                 )
                 return False
         except (requests.RequestException, ValueError) as e:
-            self.log_test("Perform BLASTp Search (Valid)", False, f"Exception: {str(e)}")
+            self.log_test(
+                "Perform BLASTp Search (Valid)", False, f"Exception: {str(e)}"
+            )
             return False
 
     def test_perform_blastp_search_call_invalid_empty(self) -> bool:
@@ -278,7 +277,7 @@ class BlastMCPEndpointTester:
                     "db_name": "pdbaa",
                     "evalue": 0.01,
                     "max_target_seqs": 5,
-                    "outfmt": "6 qseqid sseqid pident length evalue bitscore"
+                    "outfmt": "6 qseqid sseqid pident length evalue bitscore",
                 },
             }
             response = self.session.post(
@@ -331,7 +330,9 @@ class BlastMCPEndpointTester:
                 )
                 return False
         except (requests.RequestException, ValueError) as e:
-            self.log_test("Perform BLASTp Search (With Parameters)", False, f"Exception: {str(e)}")
+            self.log_test(
+                "Perform BLASTp Search (With Parameters)", False, f"Exception: {str(e)}"
+            )
             return False
 
     def test_unknown_tool_call(self) -> bool:

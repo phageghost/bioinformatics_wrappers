@@ -101,7 +101,7 @@ async def search_protein_sequence(request: SearchRequest):
                 db_name=request.db_name,
                 evalue=request.evalue,
                 max_target_seqs=request.max_target_seqs,
-                outfmt=request.outfmt
+                outfmt=request.outfmt,
             )
 
             if not success:
@@ -145,23 +145,23 @@ async def list_mcp_tools():
                         "db_name": {
                             "type": "string",
                             "description": "BLAST database name (default: nr)",
-                            "default": "nr"
+                            "default": "nr",
                         },
                         "evalue": {
                             "type": "number",
                             "description": "E-value threshold (default: 0.001)",
-                            "default": 0.001
+                            "default": 0.001,
                         },
                         "max_target_seqs": {
                             "type": "integer",
                             "description": "Maximum number of target sequences (default: 20)",
-                            "default": 20
+                            "default": 20,
                         },
                         "outfmt": {
                             "type": "string",
                             "description": "Output format (default: 6 qseqid sseqid pident length evalue bitscore sscinames)",
-                            "default": "6 qseqid sseqid pident length evalue bitscore sscinames"
-                        }
+                            "default": "6 qseqid sseqid pident length evalue bitscore sscinames",
+                        },
                     },
                     "required": ["sequence"],
                 },
@@ -193,7 +193,9 @@ async def call_mcp_tool(request: dict):
         db_name = arguments.get("db_name", "nr")
         evalue = arguments.get("evalue", 1e-3)
         max_target_seqs = arguments.get("max_target_seqs", 20)
-        outfmt = arguments.get("outfmt", "6 qseqid sseqid pident length evalue bitscore sscinames")
+        outfmt = arguments.get(
+            "outfmt", "6 qseqid sseqid pident length evalue bitscore sscinames"
+        )
 
         start_time = time.time()
         with tempfile.NamedTemporaryFile(delete=False, suffix=".fasta") as temp_file:
@@ -211,7 +213,7 @@ async def call_mcp_tool(request: dict):
                     db_name=db_name,
                     evalue=evalue,
                     max_target_seqs=max_target_seqs,
-                    outfmt=outfmt
+                    outfmt=outfmt,
                 )
                 if not success:
                     raise HTTPException(
