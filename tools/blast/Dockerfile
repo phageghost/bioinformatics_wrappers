@@ -7,14 +7,10 @@ ARG TARGETARCH
 # Set working directory
 WORKDIR /app
 
-Install system dependencies including build tools
+#Install system dependencies including build tools
 RUN apt-get update && apt-get install -y \
-    git \
     wget \
     curl \
-    gcc \
-    g++ \
-    make \
     bzip2 \
     && rm -rf /var/lib/apt/lists/*
 
@@ -41,7 +37,7 @@ COPY app.py .
 COPY run_combined_server.py .
 
 # Create necessary directories
-RUN mkdir -p /app/spider_tool/input /app/spider_tool/output
+RUN mkdir -p /app/blast_db /app/blast_output
 
 # Set environment variables
 ENV PYTHONPATH=/app

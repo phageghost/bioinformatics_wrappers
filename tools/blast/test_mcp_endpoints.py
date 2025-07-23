@@ -1,67 +1,11 @@
 #!/usr/bin/env python3
-"""
-SPIDER MCP-like Endpoints Test Suite
-
-This module provides comprehensive testing for the SPIDER MCP-like endpoints that
-enable AI agent integration. It tests the MCP-compatible interface that allows
-AI agents to discover and call SPIDER tools programmatically.
-
-The SpiderMCPEndpointTester class provides:
-- Automated testing of MCP-like endpoint functionality
-- Tool discovery and schema validation testing
-- Tool execution with various input parameters
-- Error handling and edge case testing
-- Response format validation for AI agent compatibility
-
-Test Coverage:
-- Tool listing endpoint (/mcp/tools)
-- Tool schema validation and structure
-- predict_druggability tool execution
-- get_tool_info tool execution
-- Invalid tool name handling
-- Malformed request handling
-- Missing Content-Type header handling
-- Response format validation for MCP compatibility
-
-Key Features:
-- Command-line argument parsing for flexible testing
-- Detailed test result logging and reporting
-- Configurable base URL for different environments
-- Comprehensive error handling and reporting
-- MCP protocol compliance validation
-- Summary statistics and pass/fail reporting
-
-MCP-like Endpoints:
-- GET /mcp/tools: List available tools with schemas
-- POST /mcp/call: Execute tools with JSON arguments
-
-Usage:
-    python test_mcp_endpoints.py [--host HOST] [--port PORT]
-
-    Examples:
-        python test_mcp_endpoints.py                    # Test localhost:8000
-        python test_mcp_endpoints.py --port 4000        # Test localhost:4000
-        python test_mcp_endpoints.py --host 192.168.1.100 --port 8000
-
-Dependencies:
-    - requests: HTTP client for API testing
-    - argparse: Command-line argument parsing
-    - json: JSON request/response handling
-    - time: Performance timing
-
-Author: Bioinformatics Wrappers Team
-Version: 1.0.0
-License: MIT
-"""
-
-
 import argparse
 from typing import Dict, Any
 import requests
 
 
-class SpiderMCPEndpointTester:
-    """Test suite for SPIDER MCP-like endpoints"""
+class BlastMCPEndpointTester:
+    """Test suite for BLAST MCP-like endpoints"""
 
     def __init__(self, base_url: str = "http://localhost:8000"):
         self.base_url = base_url
@@ -86,7 +30,7 @@ class SpiderMCPEndpointTester:
                 data = response.json()
                 if "tools" in data and isinstance(data["tools"], list):
                     tools = data["tools"]
-                    expected_tools = ["predict_druggability", "get_tool_info"]
+                    expected_tools = ["perform_blastp_search", "get_tool_info"]
                     tool_names = [tool["name"] for tool in tools]
 
                     if all(tool in tool_names for tool in expected_tools):
@@ -158,7 +102,7 @@ class SpiderMCPEndpointTester:
                     content = data["content"]
                     if len(content) > 0 and "text" in content[0]:
                         text = content[0]["text"]
-                        if "SPIDER Tool Information" in text:
+                        if "BLASTp Tool Information" in text:
                             self.log_test(
                                 "Get Tool Info Call",
                                 True,
@@ -195,14 +139,14 @@ class SpiderMCPEndpointTester:
             self.log_test("Get Tool Info Call", False, f"Exception: {str(e)}")
             return False
 
-    def test_predict_druggability_call_valid(self) -> bool:
-        """Test calling predict_druggability with valid sequence"""
+    def test_perform_blastp_search_call_valid(self) -> bool:
+        """Test calling perform_blastp_search with valid sequence"""
         try:
             sequence = (
                 "MKTVRQERLKSIVRILERSKEPVSGAQLAEELSVSRQVIVQDIAYLRSLGYNIVATPRGYVLAGG"
             )
             payload = {
-                "name": "predict_druggability",
+                "name": "perform_blastp_search",
                 "arguments": {"sequence": sequence},
             }
             response = self.session.post(
@@ -217,51 +161,51 @@ class SpiderMCPEndpointTester:
                     if len(content) > 0 and "text" in content[0]:
                         text = content[0]["text"]
                         if (
-                            "SPIDER Prediction Results" in text
+                            "BLASTp Search Results" in text
                             and "Status: Success" in text
                         ):
                             self.log_test(
-                                "Predict Druggability (Valid)",
+                                "Perform BLASTp Search (Valid)",
                                 True,
-                                "Successfully predicted druggability",
+                                "Successfully performed BLASTp search",
                             )
                             return True
                         else:
                             self.log_test(
-                                "Predict Druggability (Valid)",
+                                "Perform BLASTp Search (Valid)",
                                 False,
-                                "Response doesn't contain expected prediction",
+                                "Response doesn't contain expected search results",
                             )
                             return False
                     else:
                         self.log_test(
-                            "Predict Druggability (Valid)",
+                            "Perform BLASTp Search (Valid)",
                             False,
                             "Response missing content or text",
                         )
                         return False
                 else:
                     self.log_test(
-                        "Predict Druggability (Valid)",
+                        "Perform BLASTp Search (Valid)",
                         False,
                         "Response missing 'content' array",
                     )
                     return False
             else:
                 self.log_test(
-                    "Predict Druggability (Valid)",
+                    "Perform BLASTp Search (Valid)",
                     False,
                     f"HTTP {response.status_code}: {response.text}",
                 )
                 return False
         except (requests.RequestException, ValueError) as e:
-            self.log_test("Predict Druggability (Valid)", False, f"Exception: {str(e)}")
+            self.log_test("Perform BLASTp Search (Valid)", False, f"Exception: {str(e)}")
             return False
 
-    def test_predict_druggability_call_invalid_empty(self) -> bool:
-        """Test calling predict_druggability with empty sequence"""
+    def test_perform_blastp_search_call_invalid_empty(self) -> bool:
+        """Test calling perform_blastp_search with empty sequence"""
         try:
-            payload = {"name": "predict_druggability", "arguments": {"sequence": ""}}
+            payload = {"name": "perform_blastp_search", "arguments": {"sequence": ""}}
             response = self.session.post(
                 f"{self.base_url}/mcp/call",
                 headers={"Content-Type": "application/json"},
@@ -269,28 +213,28 @@ class SpiderMCPEndpointTester:
             )
             if response.status_code == 400:
                 self.log_test(
-                    "Predict Druggability (Invalid - Empty)",
+                    "Perform BLASTp Search (Invalid - Empty)",
                     True,
                     "Correctly rejected empty sequence",
                 )
                 return True
             else:
                 self.log_test(
-                    "Predict Druggability (Invalid - Empty)",
+                    "Perform BLASTp Search (Invalid - Empty)",
                     False,
                     f"Expected 400, got {response.status_code}",
                 )
                 return False
         except (requests.RequestException, ValueError) as e:
             self.log_test(
-                "Predict Druggability (Invalid - Empty)", False, f"Exception: {str(e)}"
+                "Perform BLASTp Search (Invalid - Empty)", False, f"Exception: {str(e)}"
             )
             return False
 
-    def test_predict_druggability_call_invalid_missing(self) -> bool:
-        """Test calling predict_druggability with missing sequence"""
+    def test_perform_blastp_search_call_invalid_missing(self) -> bool:
+        """Test calling perform_blastp_search with missing sequence"""
         try:
-            payload = {"name": "predict_druggability", "arguments": {}}
+            payload = {"name": "perform_blastp_search", "arguments": {}}
             response = self.session.post(
                 f"{self.base_url}/mcp/call",
                 headers={"Content-Type": "application/json"},
@@ -298,21 +242,21 @@ class SpiderMCPEndpointTester:
             )
             if response.status_code == 400:
                 self.log_test(
-                    "Predict Druggability (Invalid - Missing)",
+                    "Perform BLASTp Search (Invalid - Missing)",
                     True,
                     "Correctly rejected missing sequence",
                 )
                 return True
             else:
                 self.log_test(
-                    "Predict Druggability (Invalid - Missing)",
+                    "Perform BLASTp Search (Invalid - Missing)",
                     False,
                     f"Expected 400, got {response.status_code}",
                 )
                 return False
         except (requests.RequestException, ValueError) as e:
             self.log_test(
-                "Predict Druggability (Invalid - Missing)",
+                "Perform BLASTp Search (Invalid - Missing)",
                 False,
                 f"Exception: {str(e)}",
             )
@@ -426,16 +370,16 @@ class SpiderMCPEndpointTester:
 
     def run_all_tests(self) -> Dict[str, Any]:
         """Run all tests and return summary"""
-        print("🧪 Testing SPIDER MCP-like Endpoints")
+        print("🧪 Testing BLAST MCP-like Endpoints")
         print("=" * 50)
 
         tests = [
             self.test_list_tools_endpoint,
             self.test_tool_schemas,
             self.test_get_tool_info_call,
-            self.test_predict_druggability_call_valid,
-            self.test_predict_druggability_call_invalid_empty,
-            self.test_predict_druggability_call_invalid_missing,
+            self.test_perform_blastp_search_call_valid,
+            self.test_perform_blastp_search_call_invalid_empty,
+            self.test_perform_blastp_search_call_invalid_missing,
             self.test_unknown_tool_call,
             self.test_malformed_json,
             self.test_missing_content_type,
@@ -467,7 +411,7 @@ class SpiderMCPEndpointTester:
 
 def main():
     """Main function"""
-    parser = argparse.ArgumentParser(description="Test SPIDER MCP-like endpoints")
+    parser = argparse.ArgumentParser(description="Test BLAST MCP-like endpoints")
     parser.add_argument(
         "--port",
         type=int,
@@ -484,9 +428,9 @@ def main():
     args = parser.parse_args()
 
     base_url = f"http://{args.host}:{args.port}"
-    print(f"🧪 Testing SPIDER MCP-like endpoints at {base_url}")
+    print(f"🧪 Testing BLAST MCP-like endpoints at {base_url}")
 
-    tester = SpiderMCPEndpointTester(base_url=base_url)
+    tester = BlastMCPEndpointTester(base_url=base_url)
     results = tester.run_all_tests()
 
     # Exit with appropriate code

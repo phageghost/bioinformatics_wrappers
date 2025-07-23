@@ -21,16 +21,19 @@ DEFAULT_BLAST_DB_NAME = "nr"
 class BLASTpService:
     """Service class for running BLASTp searches"""
 
-    def __init__(self, db_path: Path | str, mm_env: str = "blast"):
-        self.db_path = Path(db_path)
+    def __init__(self, db_path: Path | str = None, mm_env: str = None):
+        self.db_path = Path(db_path or os.environ.get("BLAST_DB_PATH", "blast_db"))
         self.output_path = Path("blast_output")
         self.output_path.mkdir(exist_ok=True)
         self.checked_dbs = set()
-        self.mm_env = mm_env
+        self.mm_env = mm_env or os.environ.get("BLAST_MM_ENV", "blast")
 
         # Setup logging
         logging.basicConfig(level=logging.INFO)
         self.logger = logging.getLogger(__name__)
+
+    def _prefix_mm_env(self, cmd: list[str]) -> list[str]:
+        return ["micromamba", "run", "-n", self.mm_env] + cmd
 
     def validate_fasta_protein_file(self, file_path: Path | str) -> bool:
         """Validate that the file is a valid FASTA protein file"""
@@ -75,7 +78,7 @@ class BLASTpService:
         cwd = os.getcwd()
         os.chdir(self.db_path)
 
-        cmd = ["update_blastdb.pl", "--decompress", "--verbose", str(db_name)]
+        cmd = self._prefix_mm_env(["update_blastdb.pl", "--decompress", "--verbose", str(db_name)])
         self.logger.info("Running update_blastdb.pl with command: %s", cmd)
         output = subprocess.run(cmd, check=True, capture_output=True, text=True)
         self.logger.info("Output: %s", output)
@@ -110,10 +113,7 @@ class BLASTpService:
             self.checked_dbs.add(db_name)
 
         # Build command
-        cmd = []
-        if self.mm_env:
-            cmd.extend(["micromamba", "run", "-n", self.mm_env])
-        cmd.extend([
+        cmd = self._prefix_mm_env([
             "blastp",
             "-query",
             str(fasta_fpath),
@@ -193,11 +193,7 @@ class BLASTpService:
 
     def get_blastp_version(self) -> str:
         """Get the version of BLASTp"""
-        cmd = []
-        if self.mm_env:
-            cmd.extend(["micromamba", "run", "-n", self.mm_env])
-          
-        cmd.extend(["blastp", "-version"])
+        cmd = self._prefix_mm_env(["blastp", "-version"])
         output = subprocess.run(cmd, check=True, capture_output=True, text=True)
         return output.stdout.strip()
 

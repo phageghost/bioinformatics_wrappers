@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
 """
-SPIDER REST API Test Suite
+BLAST REST API Test Suite
 
-This module provides comprehensive testing for the SPIDER REST API endpoints.
+This module provides comprehensive testing for the BLAST REST API endpoints.
 It includes automated tests for all API functionality including health checks,
-tool information, prediction endpoints, and error handling.
+tool information, search endpoints, and error handling.
 
-The SpiderRESTAPITester class provides:
+The BlastRESTAPITester class provides:
 - Automated testing of all REST API endpoints
 - Validation of response formats and data structures
 - Error condition testing and edge case handling
@@ -14,10 +14,10 @@ The SpiderRESTAPITester class provides:
 - Configurable test parameters (host, port)
 
 Test Coverage:
-- Health check endpoint (/api/v1/spider/health)
-- Tool information endpoint (/api/v1/spider/info)
-- Prediction endpoint with valid sequences
-- Prediction endpoint with invalid/missing parameters
+- Health check endpoint (/api/v1/blastp/health)
+- Tool information endpoint (/api/v1/blastp/info)
+- Search endpoint with valid sequences
+- Search endpoint with invalid/missing parameters
 - Error handling and status codes
 - Response format validation
 - Documentation endpoint accessibility
@@ -55,8 +55,8 @@ from typing import Dict, Any
 import requests
 
 
-class SpiderRESTAPITester:
-    """Test suite for SPIDER REST API"""
+class BlastRESTAPITester:
+    """Test suite for BLAST REST API"""
 
     def __init__(self, base_url: str = "http://localhost:8000"):
         self.base_url = base_url
@@ -76,7 +76,7 @@ class SpiderRESTAPITester:
     def test_health_endpoint(self) -> bool:
         """Test the health check endpoint"""
         try:
-            response = self.session.get(f"{self.base_url}/api/v1/spider/health")
+            response = self.session.get(f"{self.base_url}/api/v1/blastp/health")
             if response.status_code == 200:
                 data = response.json()
                 expected_fields = ["status", "timestamp", "tool", "version"]
@@ -132,7 +132,7 @@ class SpiderRESTAPITester:
     def test_tool_info_endpoint(self) -> bool:
         """Test the tool info endpoint"""
         try:
-            response = self.session.get(f"{self.base_url}/api/v1/spider/info")
+            response = self.session.get(f"{self.base_url}/api/v1/blastp/info")
             if response.status_code == 200:
                 data = response.json()
                 expected_fields = ["name", "version", "description"]
@@ -155,14 +155,14 @@ class SpiderRESTAPITester:
             self.log_test("Tool Info", False, f"Exception: {str(e)}")
             return False
 
-    def test_prediction_endpoint_valid(self) -> bool:
-        """Test prediction endpoint with valid sequence"""
+    def test_search_endpoint_valid(self) -> bool:
+        """Test search endpoint with valid sequence"""
         try:
             sequence = (
                 "MKTVRQERLKSIVRILERSKEPVSGAQLAEELSVSRQVIVQDIAYLRSLGYNIVATPRGYVLAGG"
             )
             response = self.session.post(
-                f"{self.base_url}/api/v1/spider/predict", params={"sequence": sequence}
+                f"{self.base_url}/api/v1/blastp/search", params={"sequence": sequence}
             )
             if response.status_code == 200:
                 data = response.json()
@@ -175,9 +175,9 @@ class SpiderRESTAPITester:
                 ]
                 if all(field in data for field in expected_fields):
                     result = data["result"]
-                    if hasattr(result, "label") or "label" in result:
+                    if hasattr(result, "report") or "report" in result:
                         self.log_test(
-                            "Prediction (Valid)",
+                            "Search (Valid)",
                             True,
                             (
                                 f"Status: {data['status']}, "
@@ -187,73 +187,73 @@ class SpiderRESTAPITester:
                         return True
                     else:
                         self.log_test(
-                            "Prediction (Valid)", False, "Result missing label field"
+                            "Search (Valid)", False, "Result missing report field"
                         )
                         return False
                 else:
                     self.log_test(
-                        "Prediction (Valid)",
+                        "Search (Valid)",
                         False,
                         f"Missing fields: {expected_fields}",
                     )
                     return False
             else:
                 self.log_test(
-                    "Prediction (Valid)",
+                    "Search (Valid)",
                     False,
                     f"HTTP {response.status_code}: {response.text}",
                 )
                 return False
         except (requests.RequestException, ValueError) as e:
-            self.log_test("Prediction (Valid)", False, f"Exception: {str(e)}")
+            self.log_test("Search (Valid)", False, f"Exception: {str(e)}")
             return False
 
-    def test_prediction_endpoint_invalid(self) -> bool:
-        """Test prediction endpoint with invalid sequence"""
+    def test_search_endpoint_invalid(self) -> bool:
+        """Test search endpoint with invalid sequence"""
         try:
             # Test with empty sequence
             response = self.session.post(
-                f"{self.base_url}/api/v1/spider/predict", params={"sequence": ""}
+                f"{self.base_url}/api/v1/blastp/search", params={"sequence": ""}
             )
             if response.status_code == 400:
                 self.log_test(
-                    "Prediction (Invalid - Empty)",
+                    "Search (Invalid - Empty)",
                     True,
                     "Correctly rejected empty sequence",
                 )
                 return True
             else:
                 self.log_test(
-                    "Prediction (Invalid - Empty)",
+                    "Search (Invalid - Empty)",
                     False,
                     f"Expected 400, got {response.status_code}",
                 )
                 return False
         except (requests.RequestException, ValueError) as e:
-            self.log_test("Prediction (Invalid - Empty)", False, f"Exception: {str(e)}")
+            self.log_test("Search (Invalid - Empty)", False, f"Exception: {str(e)}")
             return False
 
-    def test_prediction_endpoint_missing(self) -> bool:
-        """Test prediction endpoint with missing sequence parameter"""
+    def test_search_endpoint_missing(self) -> bool:
+        """Test search endpoint with missing sequence parameter"""
         try:
-            response = self.session.post(f"{self.base_url}/api/v1/spider/predict")
+            response = self.session.post(f"{self.base_url}/api/v1/blastp/search")
             if response.status_code == 422:  # FastAPI validation error
                 self.log_test(
-                    "Prediction (Invalid - Missing)",
+                    "Search (Invalid - Missing)",
                     True,
                     "Correctly rejected missing sequence",
                 )
                 return True
             else:
                 self.log_test(
-                    "Prediction (Invalid - Missing)",
+                    "Search (Invalid - Missing)",
                     False,
                     f"Expected 422, got {response.status_code}",
                 )
                 return False
         except (requests.RequestException, ValueError) as e:
             self.log_test(
-                "Prediction (Invalid - Missing)", False, f"Exception: {str(e)}"
+                "Search (Invalid - Missing)", False, f"Exception: {str(e)}"
             )
             return False
 
@@ -294,16 +294,16 @@ class SpiderRESTAPITester:
 
     def run_all_tests(self) -> Dict[str, Any]:
         """Run all tests and return summary"""
-        print("🧪 Testing SPIDER REST API Endpoints")
+        print("🧪 Testing BLAST REST API Endpoints")
         print("=" * 50)
 
         tests = [
             self.test_health_endpoint,
             self.test_root_endpoint,
             self.test_tool_info_endpoint,
-            self.test_prediction_endpoint_valid,
-            self.test_prediction_endpoint_invalid,
-            self.test_prediction_endpoint_missing,
+            self.test_search_endpoint_valid,
+            self.test_search_endpoint_invalid,
+            self.test_search_endpoint_missing,
             self.test_documentation_endpoints,
             self.test_nonexistent_endpoint,
         ]
@@ -333,7 +333,7 @@ class SpiderRESTAPITester:
 
 def main():
     """Main function"""
-    parser = argparse.ArgumentParser(description="Test SPIDER REST API endpoints")
+    parser = argparse.ArgumentParser(description="Test BLAST REST API endpoints")
     parser.add_argument(
         "--port",
         type=int,
@@ -350,9 +350,9 @@ def main():
     args = parser.parse_args()
 
     base_url = f"http://{args.host}:{args.port}"
-    print(f"🧪 Testing SPIDER REST API at {base_url}")
+    print(f"🧪 Testing BLAST REST API at {base_url}")
 
-    tester = SpiderRESTAPITester(base_url=base_url)
+    tester = BlastRESTAPITester(base_url=base_url)
     results = tester.run_all_tests()
 
     # Exit with appropriate code
