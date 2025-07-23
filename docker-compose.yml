@@ -20,45 +20,6 @@ services:
     networks:
       - bioinformatics_network
 
-  # Docker Registry with MinIO storage
-  registry:
-    image: registry:2
-    container_name: bioinformatics-registry
-    ports:
-      - "5000:5000"  # Docker registry API
-    environment:
-      - REGISTRY_STORAGE=s3
-      - REGISTRY_STORAGE_S3_ACCESSKEY=admin
-      - REGISTRY_STORAGE_S3_SECRETKEY=password123
-      - REGISTRY_STORAGE_S3_REGION=us-east-1
-      - REGISTRY_STORAGE_S3_BUCKET=docker-registry
-      - REGISTRY_STORAGE_S3_ENDPOINT=http://minio:9000
-      - REGISTRY_STORAGE_S3_FORCEPATHSTYLE=true
-      - REGISTRY_HTTP_HOST=http://localhost:5000
-    volumes:
-      - registry_data:/var/lib/registry
-    restart: unless-stopped
-    depends_on:
-      - minio
-    networks:
-      - bioinformatics_network
-
-  # MinIO object storage
-  minio:
-    image: minio/minio:latest
-    container_name: bioinformatics-minio
-    command: server /data --console-address ":9001"
-    ports:
-      - "9000:9000"  # MinIO API
-      - "9001:9001"  # MinIO Console
-    environment:
-      - MINIO_ROOT_USER=admin
-      - MINIO_ROOT_PASSWORD=password123
-    volumes:
-      - minio_data:/data
-    restart: unless-stopped
-    networks:
-      - bioinformatics_network
 
   # Future tools can be added here following the same pattern:
   # tool_name:

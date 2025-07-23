@@ -1,4 +1,3 @@
-
 from datetime import datetime
 
 from pydantic import BaseModel
@@ -18,6 +17,7 @@ class SearchRequest(BaseModel):
     fasta_fpath: str
     evalue: float
     max_target_seqs: int
+
 
 class BLASTpResult(BaseModel):
     """Individual search result"""

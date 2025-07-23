@@ -31,7 +31,7 @@ Key Features:
 
 Usage:
     python test_rest_api.py [--host HOST] [--port PORT]
-    
+
     Examples:
         python test_rest_api.py                    # Test localhost:8000
         python test_rest_api.py --port 4000        # Test localhost:4000
@@ -179,8 +179,10 @@ class SpiderRESTAPITester:
                         self.log_test(
                             "Prediction (Valid)",
                             True,
-                            (f"Status: {data['status']}, "
-                             f"Processing Time: {data['processing_time']}s"),
+                            (
+                                f"Status: {data['status']}, "
+                                f"Processing Time: {data['processing_time']}s"
+                            ),
                         )
                         return True
                     else:

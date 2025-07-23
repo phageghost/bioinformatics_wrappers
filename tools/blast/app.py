@@ -8,10 +8,35 @@ from fastapi import FastAPI, HTTPException, status
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 
-from api.models import HealthResponse, SearchResponse
-from tools.blast.api.blast_service import BLASTpService
+try:
+    # Try relative imports first (for when imported as part of a package)
+    from .constants import DEFAULT_BLAST_DB_PATH
+    from .api.models import HealthResponse, SearchResponse
+    from .api.blast_service import BLASTpService
+except ImportError:
+    # Fall back to absolute imports (for when run as script or from local directory)
+    from constants import DEFAULT_BLAST_DB_PATH
+    from api.models import HealthResponse, SearchResponse
+    from api.blast_service import BLASTpService
 
-version = open('VERSION', 'r', encoding='utf-8').read().strip()
+
+if "BLAST_DB_PATH" in os.environ:
+    DB_PATH = os.environ["BLAST_DB_PATH"]
+else:
+    DB_PATH = DEFAULT_BLAST_DB_PATH
+
+if "BLAST_MM_ENV" in os.environ:
+    MM_ENV = os.environ["BLAST_MM_ENV"]
+else:
+    MM_ENV = ""
+
+
+version = open("VERSION", "r", encoding="utf-8").read().strip()
+
+
+# Initialize BLASTp service
+blastp_service = BLASTpService(db_path=Path("blast_db"), mm_env=MM_ENV)
+
 
 # Initialize FastAPI app
 app = FastAPI(
@@ -30,9 +55,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-# Initialize BLASTp service
-blastp_service = BLASTpService(db_path=Path("blast_db"))
 
 
 @app.get("/", response_model=dict)

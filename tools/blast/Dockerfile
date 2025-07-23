@@ -47,6 +47,7 @@ RUN mkdir -p /app/spider_tool/input /app/spider_tool/output
 ENV PYTHONPATH=/app
 ENV VERSION=${VERSION}
 ENV PORT=8000
+ENV BLAST_MM_ENV='blast'¬
 
 # Add labels for better image management
 LABEL org.opencontainers.image.title="BLAST API"
@@ -57,7 +58,7 @@ LABEL maintainer="bioinformatics-wrappers"
 
 # Health check (tries PORT env var, then common ports)
 HEALTHCHECK --interval=30s --timeout=30s --start-period=5s --retries=3 \
-    CMD bash -c 'port=${PORT:-8000}; curl -f http://localhost:$port/api/v1/spider/health' || exit 1
+    CMD bash -c 'port=${PORT:-8000}; curl -f http://localhost:$port/api/v1/blastp/health' || exit 1
 
 # Run the application using the API environment
 CMD ["micromamba", "run", "-n", "api", "python", "run_combined_server.py"]
