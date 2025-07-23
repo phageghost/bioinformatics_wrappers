@@ -16,10 +16,6 @@ services:
 
   blast:
     image: blast-api:latest
-    environment:
-      - BLAST_DB_PATH=/blast_db
-    volumes:
-      - ${BLAST_DB_PATH:-./blast_databases}:/blast_db
     container_name: blast-api
     ports:
       - "8001:8000" 

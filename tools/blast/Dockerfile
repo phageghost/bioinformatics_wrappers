@@ -41,6 +41,7 @@ COPY VERSION .
 RUN mkdir -p /app/blast_output
 
 # Set environment variables
+ENV BLAST_DB_PATH=/blast_db
 ENV PYTHONPATH=/app
 ENV VERSION=${VERSION}
 ENV PORT=8000

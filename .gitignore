@@ -207,6 +207,6 @@ marimo/_lsp/
 __marimo__/
 
 # BLAST
-blast_db/
-blast_output/
+tools/blast/blast_db/
+tools/blast/blast_output/
 tools/blast/dev.ipynb
