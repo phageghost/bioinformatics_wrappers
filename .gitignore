@@ -209,3 +209,4 @@ __marimo__/
 # BLAST
 blast_db/
 blast_output/
+tools/blast/dev.ipynb

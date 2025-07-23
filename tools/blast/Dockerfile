@@ -47,7 +47,7 @@ RUN mkdir -p /app/spider_tool/input /app/spider_tool/output
 ENV PYTHONPATH=/app
 ENV VERSION=${VERSION}
 ENV PORT=8000
-ENV BLAST_MM_ENV='blast'¬
+ENV BLAST_MM_ENV='blast'
 
 # Add labels for better image management
 LABEL org.opencontainers.image.title="BLAST API"

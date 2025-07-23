@@ -193,7 +193,11 @@ class BLASTpService:
 
     def get_blastp_version(self) -> str:
         """Get the version of BLASTp"""
-        cmd = ["blastp", "-version"]
+        cmd = []
+        if self.mm_env:
+            cmd.extend(["micromamba", "run", "-n", self.mm_env])
+          
+        cmd.extend(["blastp", "-version"])
         output = subprocess.run(cmd, check=True, capture_output=True, text=True)
         return output.stdout.strip()
 
