@@ -14,20 +14,24 @@ services:
     networks:
       - bioinformatics_network
 
-    blast:
-      image: blast-api:latest
-      container_name: blast-api
-      ports:
-        - "8001:8000" 
-      restart: unless-stopped
-      healthcheck:
-        test: ["CMD", "curl", "-f", "http://localhost:8000/api/v1/blastp/health"]
-        interval: 30s
-        timeout: 10s
-        retries: 3
-        start_period: 40s
-      networks:
-        - bioinformatics_network
+  blast:
+    image: blast-api:latest
+    environment:
+      - BLAST_DB_PATH=/blast_db
+    volumes:
+      - ${BLAST_DB_PATH:-./blast_databases}:/blast_db
+    container_name: blast-api
+    ports:
+      - "8001:8000" 
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/v1/blastp/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    networks:
+      - bioinformatics_network
 
   # Future tools can be added here following the same pattern:
   # tool_name:
@@ -45,6 +49,8 @@ services:
 
 volumes:
   spider_data:
+    driver: local
+  blast_db_data:
     driver: local
 
   # tool_name_data:

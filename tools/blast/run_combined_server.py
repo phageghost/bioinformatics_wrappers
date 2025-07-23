@@ -12,10 +12,9 @@ logger = logging.getLogger(__name__)
 
 class CombinedServer:
     """Manages FastAPI server process with monitoring and graceful shutdown capabilities."""    
-    def __init__(self, blast_db_path: str):
+    def __init__(self):
         self.fastapi_process = None
         self.running = True
-        self.blast_db_path = blast_db_path
 
     def signal_handler(self, signum, frame):  # pylint: disable=unused-argument
         """Handle shutdown signals"""

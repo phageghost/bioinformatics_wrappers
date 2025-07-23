@@ -22,7 +22,13 @@ class BLASTpService:
     """Service class for running BLASTp searches"""
 
     def __init__(self, db_path: Path | str = None, mm_env: str = None):
-        self.db_path = Path(db_path or os.environ.get("BLAST_DB_PATH", "blast_db"))
+        db_path_env = os.environ.get("BLAST_DB_PATH")
+        if not db_path and not db_path_env:
+            raise ValueError(
+                "BLAST_DB_PATH environment variable must be set for database storage. "
+                "Example: docker run -e BLAST_DB_PATH=/blast_db -v /host/path:/blast_db your-image"
+            )
+        self.db_path = Path(db_path or db_path_env)
         self.output_path = Path("blast_output")
         self.output_path.mkdir(exist_ok=True)
         self.checked_dbs = set()

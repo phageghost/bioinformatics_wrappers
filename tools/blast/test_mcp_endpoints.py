@@ -7,7 +7,7 @@ import requests
 class BlastMCPEndpointTester:
     """Test suite for BLAST MCP-like endpoints"""
 
-    def __init__(self, base_url: str = "http://localhost:8000"):
+    def __init__(self, base_url: str = "http://localhost:8001"):
         self.base_url = base_url
         self.session = requests.Session()
         self.test_results = []
@@ -147,7 +147,10 @@ class BlastMCPEndpointTester:
             )
             payload = {
                 "name": "perform_blastp_search",
-                "arguments": {"sequence": sequence},
+                "arguments": {
+                    "sequence": sequence,
+                    "db_name": "pdbaa"
+                },
             }
             response = self.session.post(
                 f"{self.base_url}/mcp/call",
@@ -260,6 +263,75 @@ class BlastMCPEndpointTester:
                 False,
                 f"Exception: {str(e)}",
             )
+            return False
+
+    def test_perform_blastp_search_call_with_parameters(self) -> bool:
+        """Test calling perform_blastp_search with all parameters"""
+        try:
+            sequence = (
+                "MKTVRQERLKSIVRILERSKEPVSGAQLAEELSVSRQVIVQDIAYLRSLGYNIVATPRGYVLAGG"
+            )
+            payload = {
+                "name": "perform_blastp_search",
+                "arguments": {
+                    "sequence": sequence,
+                    "db_name": "pdbaa",
+                    "evalue": 0.01,
+                    "max_target_seqs": 5,
+                    "outfmt": "6 qseqid sseqid pident length evalue bitscore"
+                },
+            }
+            response = self.session.post(
+                f"{self.base_url}/mcp/call",
+                headers={"Content-Type": "application/json"},
+                json=payload,
+            )
+            if response.status_code == 200:
+                data = response.json()
+                if "content" in data and isinstance(data["content"], list):
+                    content = data["content"]
+                    if len(content) > 0 and "text" in content[0]:
+                        text = content[0]["text"]
+                        if (
+                            "BLASTp Search Results" in text
+                            and "Status: Success" in text
+                        ):
+                            self.log_test(
+                                "Perform BLASTp Search (With Parameters)",
+                                True,
+                                "Successfully performed BLASTp search with custom parameters",
+                            )
+                            return True
+                        else:
+                            self.log_test(
+                                "Perform BLASTp Search (With Parameters)",
+                                False,
+                                "Response doesn't contain expected search results",
+                            )
+                            return False
+                    else:
+                        self.log_test(
+                            "Perform BLASTp Search (With Parameters)",
+                            False,
+                            "Response missing content or text",
+                        )
+                        return False
+                else:
+                    self.log_test(
+                        "Perform BLASTp Search (With Parameters)",
+                        False,
+                        "Response missing 'content' array",
+                    )
+                    return False
+            else:
+                self.log_test(
+                    "Perform BLASTp Search (With Parameters)",
+                    False,
+                    f"HTTP {response.status_code}: {response.text}",
+                )
+                return False
+        except (requests.RequestException, ValueError) as e:
+            self.log_test("Perform BLASTp Search (With Parameters)", False, f"Exception: {str(e)}")
             return False
 
     def test_unknown_tool_call(self) -> bool:
@@ -378,6 +450,7 @@ class BlastMCPEndpointTester:
             self.test_tool_schemas,
             self.test_get_tool_info_call,
             self.test_perform_blastp_search_call_valid,
+            self.test_perform_blastp_search_call_with_parameters,
             self.test_perform_blastp_search_call_invalid_empty,
             self.test_perform_blastp_search_call_invalid_missing,
             self.test_unknown_tool_call,
@@ -415,8 +488,8 @@ def main():
     parser.add_argument(
         "--port",
         type=int,
-        default=8000,
-        help="Port number for the API server (default: 8000)",
+        default=8001,
+        help="Port number for the API server (default: 8001)",
     )
     parser.add_argument(
         "--host",

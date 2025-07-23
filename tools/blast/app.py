@@ -10,11 +10,11 @@ from fastapi.middleware.cors import CORSMiddleware
 
 try:
     # Try relative imports first (for when imported as part of a package)
-    from .api.models import HealthResponse, SearchResponse
+    from .api.models import HealthResponse, SearchResponse, SearchRequest
     from .api.blast_service import BLASTpService
 except ImportError:
     # Fall back to absolute imports (for when run as script or from local directory)
-    from api.models import HealthResponse, SearchResponse
+    from api.models import HealthResponse, SearchResponse, SearchRequest
     from api.blast_service import BLASTpService
 
 
@@ -70,11 +70,11 @@ async def get_tool_info_rest():
 
 
 @app.post("/api/v1/blastp/search", response_model=SearchResponse)
-async def search_protein_sequence(sequence: str):
+async def search_protein_sequence(request: SearchRequest):
     start_time = time.time()
 
-    # Validate file
-    if not sequence:
+    # Validate sequence
+    if not request.sequence:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST, detail="No sequence provided"
         )
@@ -83,7 +83,7 @@ async def search_protein_sequence(sequence: str):
     with tempfile.NamedTemporaryFile(delete=False, suffix=".fasta") as temp_file:
         try:
             # Create FASTA format content - ensure sequence is on a single line
-            fasta_content = f">sequence\n{sequence.strip()}\n"
+            fasta_content = f">sequence\n{request.sequence.strip()}\n"
             # Write FASTA content to temporary file
             temp_file.write(fasta_content.encode("utf-8"))
             temp_file.flush()
@@ -95,9 +95,13 @@ async def search_protein_sequence(sequence: str):
                     detail="Invalid sequence format",
                 )
 
-            # Run SPIDER prediction
+            # Run BLASTp search with all parameters
             success, message, result = blastp_service.run_blastp_search(
-                Path(temp_file.name)
+                fasta_fpath=Path(temp_file.name),
+                db_name=request.db_name,
+                evalue=request.evalue,
+                max_target_seqs=request.max_target_seqs,
+                outfmt=request.outfmt
             )
 
             if not success:
@@ -137,6 +141,26 @@ async def list_mcp_tools():
                         "sequence": {
                             "type": "string",
                             "description": "Protein sequence to analyze",
+                        },
+                        "db_name": {
+                            "type": "string",
+                            "description": "BLAST database name (default: nr)",
+                            "default": "nr"
+                        },
+                        "evalue": {
+                            "type": "number",
+                            "description": "E-value threshold (default: 0.001)",
+                            "default": 0.001
+                        },
+                        "max_target_seqs": {
+                            "type": "integer",
+                            "description": "Maximum number of target sequences (default: 20)",
+                            "default": 20
+                        },
+                        "outfmt": {
+                            "type": "string",
+                            "description": "Output format (default: 6 qseqid sseqid pident length evalue bitscore sscinames)",
+                            "default": "6 qseqid sseqid pident length evalue bitscore sscinames"
                         }
                     },
                     "required": ["sequence"],
@@ -165,6 +189,12 @@ async def call_mcp_tool(request: dict):
                 status_code=status.HTTP_400_BAD_REQUEST, detail="Sequence is required"
             )
 
+        # Get all parameters with defaults
+        db_name = arguments.get("db_name", "nr")
+        evalue = arguments.get("evalue", 1e-3)
+        max_target_seqs = arguments.get("max_target_seqs", 20)
+        outfmt = arguments.get("outfmt", "6 qseqid sseqid pident length evalue bitscore sscinames")
+
         start_time = time.time()
         with tempfile.NamedTemporaryFile(delete=False, suffix=".fasta") as temp_file:
             try:
@@ -177,7 +207,11 @@ async def call_mcp_tool(request: dict):
                         detail="Invalid sequence format",
                     )
                 success, message, result = blastp_service.run_blastp_search(
-                    Path(temp_file.name)
+                    fasta_fpath=Path(temp_file.name),
+                    db_name=db_name,
+                    evalue=evalue,
+                    max_target_seqs=max_target_seqs,
+                    outfmt=outfmt
                 )
                 if not success:
                     raise HTTPException(

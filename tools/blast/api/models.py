@@ -13,10 +13,12 @@ class HealthResponse(BaseModel):
 
 
 class SearchRequest(BaseModel):
-
-    fasta_fpath: str
-    evalue: float
-    max_target_seqs: int
+    """Request model for BLASTp search"""
+    sequence: str
+    db_name: str = "nr"
+    evalue: float = 1e-3
+    max_target_seqs: int = 20
+    outfmt: str = "6 qseqid sseqid pident length evalue bitscore sscinames"
 
 
 class BLASTpResult(BaseModel):

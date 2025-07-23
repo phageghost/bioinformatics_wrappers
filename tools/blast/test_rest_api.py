@@ -58,7 +58,7 @@ import requests
 class BlastRESTAPITester:
     """Test suite for BLAST REST API"""
 
-    def __init__(self, base_url: str = "http://localhost:8000"):
+    def __init__(self, base_url: str = "http://localhost:8001"):
         self.base_url = base_url
         self.session = requests.Session()
         self.test_results = []
@@ -162,7 +162,8 @@ class BlastRESTAPITester:
                 "MKTVRQERLKSIVRILERSKEPVSGAQLAEELSVSRQVIVQDIAYLRSLGYNIVATPRGYVLAGG"
             )
             response = self.session.post(
-                f"{self.base_url}/api/v1/blastp/search", params={"sequence": sequence}
+                f"{self.base_url}/api/v1/blastp/search", 
+                json={"sequence": sequence, "db_name": "pdbaa"}
             )
             if response.status_code == 200:
                 data = response.json()
@@ -213,9 +214,9 @@ class BlastRESTAPITester:
         try:
             # Test with empty sequence
             response = self.session.post(
-                f"{self.base_url}/api/v1/blastp/search", params={"sequence": ""}
+                f"{self.base_url}/api/v1/blastp/search", json={"sequence": ""}
             )
-            if response.status_code == 400:
+            if response.status_code == 400:  # API returns 400 for empty sequence
                 self.log_test(
                     "Search (Invalid - Empty)",
                     True,
@@ -337,7 +338,7 @@ def main():
     parser.add_argument(
         "--port",
         type=int,
-        default=8000,
+        default=8001,
         help="Port number for the API server (default: 8000)",
     )
     parser.add_argument(

@@ -27,27 +27,27 @@ RUN if [ "$TARGETARCH" = "arm64" ]; then \
 # Initialize micromamba for the shell
 SHELL ["/bin/bash", "-c"]
 
-# Create API environment with Python 3.12 and API dependencies
-COPY environment.yml .
-RUN micromamba env create -f environment.yml
+# Create environments from YAML files
+COPY environment-api.yml environment-blast.yml .
+RUN micromamba env create -f environment-api.yml && micromamba env create -f environment-blast.yml
 
 # Copy API wrapper files
 COPY api/ ./api/
 COPY app.py .
 COPY run_combined_server.py .
+COPY VERSION .
 
 # Create necessary directories
-RUN mkdir -p /app/blast_db /app/blast_output
+RUN mkdir -p /app/blast_output
 
 # Set environment variables
 ENV PYTHONPATH=/app
 ENV VERSION=${VERSION}
 ENV PORT=8000
-ENV BLAST_MM_ENV='blast'
 
 # Add labels for better image management
 LABEL org.opencontainers.image.title="BLAST API"
-LABEL org.opencontainers.image.description="REST API and MCP-like endpoints for BLAST sequence search"
+LABEL org.opencontainers.image.description="REST API and MCP-like endpoints for BLAST sequence search. REQUIRES BLAST_DB_PATH environment variable and volume mount for database storage."
 LABEL org.opencontainers.image.version="${VERSION}"
 LABEL org.opencontainers.image.licenses="MIT"
 LABEL maintainer="bioinformatics-wrappers"
