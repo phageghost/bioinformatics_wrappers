@@ -35,6 +35,7 @@ RUN micromamba env create -f environment-api.yml && micromamba env create -f env
 COPY api/ ./api/
 COPY app.py .
 COPY run_combined_server.py .
+COPY startup_check.py .
 COPY VERSION .
 
 # Create necessary directories
@@ -53,9 +54,9 @@ LABEL org.opencontainers.image.version="${VERSION}"
 LABEL org.opencontainers.image.licenses="MIT"
 LABEL maintainer="bioinformatics-wrappers"
 
-# Health check (tries PORT env var, then common ports)
+# Health check with better error reporting
 HEALTHCHECK --interval=30s --timeout=30s --start-period=5s --retries=3 \
-    CMD bash -c 'port=${PORT:-8000}; curl -f http://localhost:$port/api/v1/blastp/health' || exit 1
+    CMD bash -c 'port=${PORT:-8000}; curl -f http://localhost:$port/api/v1/blastp/health || (echo "Health check failed. Check if BLAST_DB_PATH is properly configured." && exit 1)'
 
-# Run the application using the API environment
-CMD ["micromamba", "run", "-n", "api", "python", "run_combined_server.py"]
+# Run startup validation and then the application
+CMD micromamba run -n api python startup_check.py && micromamba run -n api python run_combined_server.py

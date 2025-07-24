@@ -61,6 +61,10 @@ bioinformatics_wrappers/
 # First, build all tools with auto-versioning
 ./scripts/build.sh
 
+# Set up BLAST database directory (required for BLAST service)
+export BLAST_DB_PATH=./blast_databases
+mkdir -p $BLAST_DB_PATH
+
 # Then start all tools
 docker-compose up -d
 
@@ -73,6 +77,31 @@ docker-compose logs -f spider
 # Stop all tools
 docker-compose down
 ```
+
+### BLAST Service Setup (Required)
+The BLAST service requires a volume mapping for database storage. You have several options:
+
+**Option 1: Environment Variable (Recommended)**
+```bash
+export BLAST_DB_PATH=./blast_databases
+mkdir -p $BLAST_DB_PATH
+docker-compose up -d blast
+```
+
+**Option 2: Direct Volume Mapping**
+```bash
+docker run -e BLAST_DB_PATH=/blast_db -v ./blast_databases:/blast_db blast-api:latest
+```
+
+**Option 3: Use the Setup Script**
+```bash
+./scripts/setup_blast.sh
+```
+
+**Troubleshooting:**
+- If you see "BLAST_DB_PATH environment variable is required", run the setup script
+- If you see permission errors, ensure the directory is writable: `chmod 755 ./blast_databases`
+- For testing, use the smaller "pdbaa" database: `curl -X POST "http://localhost:8001/api/v1/blastp/search" -H "Content-Type: application/json" -d '{"sequence": "MKTVRQERLKSIVRILERSKEPVSGAQLAEELSVSRQVIVQDIAYLRSLGYNIVATPRGYVLAGG", "db_name": "pdbaa"}'`
 
 ### Individual Tool Usage
 ```bash
