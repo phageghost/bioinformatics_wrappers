@@ -1,6 +1,0 @@
-# Base environment requirements (Python 3.12+)
-fastapi
-uvicorn
-python-multipart
-pydantic
-aiofiles
