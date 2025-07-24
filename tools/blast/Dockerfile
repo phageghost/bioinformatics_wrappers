@@ -1,4 +1,4 @@
-FROM python:3.12-slim
+FROM python:3.12-slim@sha256:9c1d9ed7593f2552a4ea47362ec0d2ddf5923458a53d0c8e30edf8b398c94a31
 
 # Build arguments
 ARG VERSION=latest
@@ -14,7 +14,7 @@ RUN apt-get update && apt-get install -y \
     bzip2 \
     && rm -rf /var/lib/apt/lists/*
 
-# Install micromamba properly
+# Install micromamba properly (version 2.3.0)
 RUN if [ "$TARGETARCH" = "arm64" ]; then \
       ARCH=linux-aarch64 ; \
     else \

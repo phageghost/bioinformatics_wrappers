@@ -1,3 +1,29 @@
+'''
+blast_service.py
+
+This module provides the BLASTpService class, which offers methods for running BLASTp protein
+sequence searches using the BLAST+ command-line tools within a micromamba-managed environment. It
+handles database path resolution, output management, and validation of input FASTA protein files.
+output management, and validation of input FASTA protein files. The service is designed to be used
+as part of a REST API for sequence search, supporting configuration via environment variables and
+robust logging for monitoring and debugging.
+
+Classes:
+    BLASTpService: Service class for running BLASTp searches with configurable database and
+    environment.
+
+Constants:
+    DEFAULT_EVALUE: Default e-value threshold for BLASTp searches.
+    DEFAULT_MAX_TARGET_SEQS: Default maximum number of target sequences to return.
+    DEFAULT_OUTFMT: Default BLASTp output format string.
+    DEFAULT_HEADER: Default header for formatted BLASTp results.
+    DEFAULT_BLAST_DB_NAME: Default BLAST database name.
+
+Environment Variables:
+    BLAST_DB_PATH: Path to the BLAST database directory.
+    BLAST_MM_ENV: Name of the micromamba environment to use for running BLAST commands.
+'''
+
 import os
 import subprocess
 from pathlib import Path
@@ -101,7 +127,26 @@ class BLASTpService:
         max_target_seqs: int = DEFAULT_MAX_TARGET_SEQS,
         outfmt: str = DEFAULT_OUTFMT,
     ) -> Tuple[bool, str, BLASTpResult]:
+        """
+        Run a BLASTp search using the provided protein FASTA file against the specified BLAST
+              database.
 
+        Args:
+            fasta_fpath (Path | str): Path to the input protein FASTA file.
+            db_name (str, optional): Name of the BLAST database to search against. Defaults to 
+                DEFAULT_BLAST_DB_NAME.
+            evalue (float, optional): E-value threshold for reporting matches. Defaults to 
+                DEFAULT_EVALUE.
+            max_target_seqs (int, optional): Maximum number of aligned sequences to keep. Defaults
+                to DEFAULT_MAX_TARGET_SEQS.
+            outfmt (str, optional): Output format for BLASTp results. Defaults to DEFAULT_OUTFMT.
+
+        Returns:
+            Tuple[bool, str, BLASTpResult]:
+                - Success status (bool)
+                - Message (str)
+                - BLASTp result (BLASTpResult)
+        """
         output_fpath = self.output_path.joinpath("blastp_output.txt")
         db_fpath = self.db_path.joinpath(db_name)
 
@@ -116,7 +161,7 @@ class BLASTpService:
         self.logger.info("DB path: %s", db_fpath)
 
         if db_name not in self.checked_dbs:
-            self.logger.info(f"New db {db_name} requested, running update_blastdb.pl")
+            self.logger.info("New db %s requested, running update_blastdb.pl", db_name)
             self.download_db(db_name)
             self.checked_dbs.add(db_name)
 

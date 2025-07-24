@@ -1,3 +1,87 @@
+"""
+BLASTp FastAPI Application
+
+This module provides a comprehensive FastAPI application that wraps the BLASTp
+bioinformatics tool, offering both REST API endpoints and MCP-like endpoints for
+AI agent integration. It serves as the main web interface for BLAST protein
+sequence searches with full parameter customization and result processing.
+
+The application provides:
+- RESTful API endpoints for BLASTp searches
+- MCP-like endpoints for AI agent integration
+- Comprehensive error handling and validation
+- CORS support for cross-origin requests
+- Automatic OpenAPI documentation generation
+- Health monitoring and tool information endpoints
+- Temporary file management for sequence processing
+
+REST API Endpoints:
+- GET /: Root endpoint with API information
+- GET /api/v1/blastp/health: Health check endpoint
+- GET /api/v1/blastp/info: Tool information and metadata
+- POST /api/v1/blastp/search: Protein sequence search with full parameter control
+- GET /docs: Interactive API documentation (Swagger UI)
+- GET /redoc: Alternative API documentation (ReDoc)
+
+MCP-like Endpoints (AI Agent Integration):
+- GET /mcp/tools: Discover available tools and their schemas
+- POST /mcp/call: Execute tools with provided arguments
+
+Search Parameters:
+- sequence: Protein sequence to search (required)
+- db_name: BLAST database name (default: "nr")
+- evalue: E-value threshold (default: 0.001)
+- max_target_seqs: Maximum target sequences (default: 20)
+- outfmt: Output format specification (default: tabular with organism names)
+
+Features:
+- Automatic FASTA format validation
+- Temporary file management with cleanup
+- Comprehensive error handling with detailed messages
+- Processing time measurement and reporting
+- Cross-platform compatibility
+- Container-ready with environment variable support
+- Graceful error responses with proper HTTP status codes
+
+Error Handling:
+- 400: Bad Request (invalid sequence, missing parameters)
+- 422: Validation Error (FastAPI automatic validation)
+- 500: Internal Server Error (BLAST execution failures)
+- Custom exception handlers for consistent error responses
+
+Usage:
+    # Start the server
+    uvicorn app:app --host 0.0.0.0 --port 8000
+    
+    # Example REST API call
+    curl -X POST "http://localhost:8000/api/v1/blastp/search" \
+         -H "Content-Type: application/json" \
+         -d '{"sequence": "MKTVRQERLKSIVRILERSKEPVSGAQLAEELSVSRQVIVQDIAYLRSLGYNIVATPRGYVLAGG"}'
+    
+    # Example MCP-like call
+    curl -X POST "http://localhost:8000/mcp/call" \
+         -H "Content-Type: application/json" \
+         -d '{"name": "perform_blastp_search", "arguments": 
+            {"sequence": "MKTVRQERLKSIVRILERSKEPVSGAQLAEELSVSRQVIVQDIAYLRSLGYNIVATPRGYVLAGG",
+             "db_name": "pdbaa", "evalue": 0.001, "max_target_seqs": 20, 
+             }'
+
+Environment Variables:
+- BLAST_DB_PATH: Path to BLAST database directory (set by container)
+- PORT: Server port (default: 8000, handled by run_combined_server.py)
+
+Dependencies:
+    - fastapi: Web framework for building APIs
+    - uvicorn: ASGI server for running FastAPI
+    - pydantic: Data validation and settings management
+    - python-multipart: File upload support
+    - aiofiles: Asynchronous file operations
+
+Author: Bioinformatics Wrappers Team
+Version: 1.0.0
+License: MIT
+"""
+
 import os
 import time
 import tempfile
@@ -71,6 +155,7 @@ async def get_tool_info_rest():
 
 @app.post("/api/v1/blastp/search", response_model=SearchResponse)
 async def search_protein_sequence(request: SearchRequest):
+    """Search a protein sequence against a BLAST database"""
     start_time = time.time()
 
     # Validate sequence
@@ -159,7 +244,8 @@ async def list_mcp_tools():
                         },
                         "outfmt": {
                             "type": "string",
-                            "description": "Output format (default: 6 qseqid sseqid pident length evalue bitscore sscinames)",
+                            "description": "Output format (default: 6 qseqid sseqid pident length \
+evalue bitscore sscinames)",
                             "default": "6 qseqid sseqid pident length evalue bitscore sscinames",
                         },
                     },

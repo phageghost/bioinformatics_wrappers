@@ -1,4 +1,64 @@
 #!/usr/bin/env python3
+"""
+BLAST MCP-like Endpoints Test Suite
+
+This module provides comprehensive testing for the BLAST MCP-like endpoints that enable
+AI agent integration. It tests the Model Context Protocol (MCP) compatible interface
+that allows AI agents to discover and call BLAST tools programmatically.
+
+The BlastMCPEndpointTester class provides:
+- Automated testing of MCP-like tool discovery endpoints
+- Validation of tool schemas and input/output formats
+- Testing of tool execution with various parameter combinations
+- Error condition testing and edge case handling
+- Performance timing and detailed logging
+- Configurable test parameters (host, port)
+
+Test Coverage:
+- Tool discovery endpoint (/mcp/tools)
+- Tool schema validation and structure verification
+- Tool execution endpoint (/mcp/call) with valid parameters
+- Tool execution with invalid/missing parameters
+- Error handling for unknown tools and malformed requests
+- Content-Type header handling
+- MCP endpoint structure compliance
+
+Key Features:
+- Command-line argument parsing for flexible testing
+- Detailed test result logging with emoji indicators
+- Configurable base URL for different environments
+- Comprehensive error handling and reporting
+- Summary statistics and pass/fail reporting
+- MCP protocol compliance validation
+
+Usage:
+    python test_mcp_endpoints.py [--host HOST] [--port PORT]
+
+    Examples:
+        python test_mcp_endpoints.py                    # Test localhost:8001
+        python test_mcp_endpoints.py --port 4000        # Test localhost:4000
+        python test_mcp_endpoints.py --host 192.168.1.100 --port 8001
+
+MCP Protocol Features Tested:
+- Tool discovery and metadata
+- Input schema validation
+- Tool execution with arguments
+- Error handling and status codes
+- Response format compliance
+- Content-Type handling
+
+Dependencies:
+    - requests: HTTP client for API testing
+    - argparse: Command-line argument parsing
+    - json: JSON response parsing
+    - typing: Type hints for better code documentation
+
+Author: Bioinformatics Wrappers Team
+Version: 1.0.0
+License: MIT
+"""
+
+
 import argparse
 from typing import Dict, Any
 import requests
