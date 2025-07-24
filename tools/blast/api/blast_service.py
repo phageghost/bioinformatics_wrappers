@@ -1,4 +1,4 @@
-'''
+"""
 blast_service.py
 
 This module provides the BLASTpService class, which offers methods for running BLASTp protein
@@ -22,7 +22,7 @@ Constants:
 Environment Variables:
     BLAST_DB_PATH: Path to the BLAST database directory.
     BLAST_MM_ENV: Name of the micromamba environment to use for running BLAST commands.
-'''
+"""
 
 import os
 import subprocess
@@ -64,11 +64,12 @@ class BLASTpService:
                 "      - BLAST_DB_PATH=/blast_db\n"
                 "    volumes:\n"
                 "      - ./blast_databases:/blast_db\n\n"
-                "The BLAST_DB_PATH must point to a writable directory where BLAST databases will be stored."
+                "The BLAST_DB_PATH must point to a writable directory where BLAST databases will \
+be stored."
             )
-        
+
         self.db_path = Path(db_path or db_path_env)
-        
+
         # Validate that the database path is writable
         try:
             self.db_path.mkdir(parents=True, exist_ok=True)
@@ -80,9 +81,10 @@ class BLASTpService:
             raise ValueError(
                 f"BLAST_DB_PATH '{self.db_path}' is not writable: {str(e)}\n\n"
                 "Please ensure the directory exists and has proper write permissions.\n"
-                "If using Docker, make sure the volume mapping is correct and the host directory is writable."
-            )
-        
+                "If using Docker, make sure the volume mapping is correct and the host directory \
+is writable."
+            ) from e
+
         self.output_path = Path("blast_output")
         self.output_path.mkdir(exist_ok=True)
         self.checked_dbs = set()
@@ -133,9 +135,11 @@ class BLASTpService:
             ["update_blastdb.pl", "--passive", "--decompress", db_name]
         )
         self.logger.info("Running update_blastdb.pl with command: %s", cmd)
-        
+
         try:
-            result = subprocess.run(cmd, cwd=self.db_path, check=True, capture_output=True, text=True)
+            result = subprocess.run(
+                cmd, cwd=self.db_path, check=True, capture_output=True, text=True
+            )
             self.logger.info("update_blastdb.pl completed successfully")
             self.logger.debug("update_blastdb.pl stdout: %s", result.stdout)
         except subprocess.CalledProcessError as e:
@@ -154,7 +158,7 @@ class BLASTpService:
                 "5. Verify the database name is correct"
             )
             self.logger.error(error_msg)
-            raise RuntimeError(error_msg)
+            raise RuntimeError(error_msg) from e
 
     def run_blastp_search(
         self,
@@ -172,9 +176,9 @@ class BLASTpService:
 
         Args:
             fasta_fpath (Path | str): Path to the input protein FASTA file.
-            db_name (str, optional): Name of the BLAST database to search against. Defaults to 
+            db_name (str, optional): Name of the BLAST database to search against. Defaults to
                 DEFAULT_BLAST_DB_NAME.
-            evalue (float, optional): E-value threshold for reporting matches. Defaults to 
+            evalue (float, optional): E-value threshold for reporting matches. Defaults to
                 DEFAULT_EVALUE.
             max_target_seqs (int, optional): Maximum number of aligned sequences to keep. Defaults
                 to DEFAULT_MAX_TARGET_SEQS.
@@ -253,7 +257,7 @@ class BLASTpService:
                 "BLASTp output file content: %s",
                 output_fpath.read_text(encoding="utf-8"),
             )
-            
+
             # Parse results based on output format
             if output_format.lower() == "json":
                 results = self._parse_blastp_json(output_fpath, query_sequence)
@@ -300,15 +304,15 @@ class BLASTpService:
         try:
             output_lines = output_file.read_text().strip().split("\n")
             hits = []
-            
+
             for line_idx, line in enumerate(output_lines):
                 if not line.strip():
                     continue
-                    
+
                 # Parse tab-separated values
                 # Format: qseqid sseqid pident length evalue bitscore sscinames
                 parts = line.strip().split("\t")
-                
+
                 if len(parts) >= 6:
                     try:
                         hit = BLASTpHit(
@@ -319,23 +323,25 @@ class BLASTpService:
                             alignment_length=int(parts[3]),
                             evalue=float(parts[4]),
                             bitscore=float(parts[5]),
-                            organism=parts[6] if len(parts) > 6 else None
+                            organism=parts[6] if len(parts) > 6 else None,
                         )
                         hits.append(hit)
                     except (ValueError, IndexError) as e:
-                        self.logger.warning("Skipping malformed line %d: %s", line_idx + 1, e)
+                        self.logger.warning(
+                            "Skipping malformed line %d: %s", line_idx + 1, e
+                        )
                         continue
 
             result = BLASTpJSONResult(
-                hits=hits,
-                total_hits=len(hits),
-                query_sequence=query_sequence
+                hits=hits, total_hits=len(hits), query_sequence=query_sequence
             )
             return result
 
         except (ValueError, IndexError, OSError, IOError) as e:
             self.logger.error("Error parsing BLASTp JSON results: %s", e)
-            return BLASTpJSONResult(hits=[], total_hits=0, query_sequence=query_sequence)
+            return BLASTpJSONResult(
+                hits=[], total_hits=0, query_sequence=query_sequence
+            )
 
     def get_blastp_version(self) -> str:
         """Get the version of BLASTp"""

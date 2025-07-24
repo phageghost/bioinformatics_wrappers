@@ -118,6 +118,7 @@ except ValueError as e:
     print("Please fix the configuration issue and restart the service.")
     print("=" * 80)
     import sys
+
     sys.exit(1)
 
 

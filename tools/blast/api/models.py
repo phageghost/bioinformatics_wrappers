@@ -76,7 +76,7 @@ Usage Examples:
         evalue=0.01,
         output_format="json"
     )
-    
+
     # Create a health response
     health = HealthResponse(
         status="healthy",
@@ -84,7 +84,7 @@ Usage Examples:
         tool="BLASTp",
         version="1.0.0"
     )
-    
+
     # Create an error response
     error = ErrorResponse(
         status="error",
@@ -129,7 +129,9 @@ class SearchRequest(BaseModel):
     evalue: float = 1e-3
     max_target_seqs: int = 20
     outfmt: str = "6 qseqid sseqid pident length evalue bitscore sscinames"
-    output_format: str = Field(default="table", description="Output format: 'table' or 'json'")
+    output_format: str = Field(
+        default="table", description="Output format: 'table' or 'json'"
+    )
 
 
 class BLASTpHit(BaseModel):

@@ -137,48 +137,51 @@ class BlastMCPEndpointTester:
                         return False
 
                 # Specifically check that perform_blastp_search has output_format parameter
-                blastp_tool = next((t for t in tools if t["name"] == "perform_blastp_search"), None)
+                blastp_tool = next(
+                    (t for t in tools if t["name"] == "perform_blastp_search"), None
+                )
                 if blastp_tool:
                     input_schema = blastp_tool["inputSchema"]
                     if "properties" in input_schema:
                         properties = input_schema["properties"]
                         if "output_format" in properties:
                             output_format_prop = properties["output_format"]
-                            if (output_format_prop.get("type") == "string" and 
-                                "enum" in output_format_prop and 
-                                set(output_format_prop["enum"]) == {"table", "json"}):
+                            if (
+                                output_format_prop.get("type") == "string"
+                                and "enum" in output_format_prop
+                                and set(output_format_prop["enum"]) == {"table", "json"}
+                            ):
                                 self.log_test(
                                     "Tool Schemas",
                                     True,
-                                    f"All {len(tools)} tools have proper schemas, output_format parameter validated"
+                                    f"All {len(tools)} tools have proper schemas, output_format \
+parameter validated",
                                 )
                                 return True
                             else:
                                 self.log_test(
                                     "Tool Schemas",
                                     False,
-                                    "output_format parameter missing proper type or enum values"
+                                    "output_format parameter missing proper type or enum values",
                                 )
                                 return False
                         else:
                             self.log_test(
                                 "Tool Schemas",
                                 False,
-                                "perform_blastp_search missing output_format parameter"
+                                "perform_blastp_search missing output_format parameter",
                             )
                             return False
                     else:
                         self.log_test(
                             "Tool Schemas",
                             False,
-                            "perform_blastp_search inputSchema missing properties"
+                            "perform_blastp_search inputSchema missing properties",
                         )
                         return False
                 else:
                     self.log_test(
-                        "Tool Schemas",
-                        False,
-                        "perform_blastp_search tool not found"
+                        "Tool Schemas", False, "perform_blastp_search tool not found"
                     )
                     return False
             else:
@@ -248,7 +251,11 @@ class BlastMCPEndpointTester:
             )
             payload = {
                 "name": "perform_blastp_search",
-                "arguments": {"sequence": sequence, "db_name": "pdbaa", "output_format": "table"},
+                "arguments": {
+                    "sequence": sequence,
+                    "db_name": "pdbaa",
+                    "output_format": "table",
+                },
             }
             response = self.session.post(
                 f"{self.base_url}/mcp/call",
@@ -313,7 +320,11 @@ class BlastMCPEndpointTester:
             )
             payload = {
                 "name": "perform_blastp_search",
-                "arguments": {"sequence": sequence, "db_name": "pdbaa", "output_format": "json"},
+                "arguments": {
+                    "sequence": sequence,
+                    "db_name": "pdbaa",
+                    "output_format": "json",
+                },
             }
             response = self.session.post(
                 f"{self.base_url}/mcp/call",

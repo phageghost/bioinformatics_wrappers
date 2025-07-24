@@ -163,7 +163,11 @@ class BlastRESTAPITester:
             )
             response = self.session.post(
                 f"{self.base_url}/api/v1/blastp/search",
-                json={"sequence": sequence, "db_name": "pdbaa", "output_format": "table"},
+                json={
+                    "sequence": sequence,
+                    "db_name": "pdbaa",
+                    "output_format": "table",
+                },
             )
             if response.status_code == 200:
                 data = response.json()
@@ -188,7 +192,9 @@ class BlastRESTAPITester:
                         return True
                     else:
                         self.log_test(
-                            "Search (Valid - Table)", False, "Result missing report field"
+                            "Search (Valid - Table)",
+                            False,
+                            "Result missing report field",
                         )
                         return False
                 else:
@@ -217,7 +223,11 @@ class BlastRESTAPITester:
             )
             response = self.session.post(
                 f"{self.base_url}/api/v1/blastp/search",
-                json={"sequence": sequence, "db_name": "pdbaa", "output_format": "json"},
+                json={
+                    "sequence": sequence,
+                    "db_name": "pdbaa",
+                    "output_format": "json",
+                },
             )
             if response.status_code == 200:
                 data = response.json()
@@ -231,13 +241,24 @@ class BlastRESTAPITester:
                 if all(field in data for field in expected_fields):
                     result = data["result"]
                     # Check for JSON format specific fields
-                    if "hits" in result and "total_hits" in result and "query_sequence" in result:
+                    if (
+                        "hits" in result
+                        and "total_hits" in result
+                        and "query_sequence" in result
+                    ):
                         hits = result["hits"]
                         if isinstance(hits, list) and len(hits) > 0:
                             # Check structure of first hit
                             first_hit = hits[0]
-                            hit_fields = ["rank", "query_id", "subject_id", "percent_identity", 
-                                        "alignment_length", "evalue", "bitscore"]
+                            hit_fields = [
+                                "rank",
+                                "query_id",
+                                "subject_id",
+                                "percent_identity",
+                                "alignment_length",
+                                "evalue",
+                                "bitscore",
+                            ]
                             if all(field in first_hit for field in hit_fields):
                                 self.log_test(
                                     "Search (Valid - JSON)",
@@ -251,9 +272,9 @@ class BlastRESTAPITester:
                                 return True
                             else:
                                 self.log_test(
-                                    "Search (Valid - JSON)", 
-                                    False, 
-                                    f"Hit missing fields: {hit_fields}"
+                                    "Search (Valid - JSON)",
+                                    False,
+                                    f"Hit missing fields: {hit_fields}",
                                 )
                                 return False
                         else:
@@ -263,9 +284,9 @@ class BlastRESTAPITester:
                             return False
                     else:
                         self.log_test(
-                            "Search (Valid - JSON)", 
-                            False, 
-                            "Result missing JSON format fields (hits, total_hits, query_sequence)"
+                            "Search (Valid - JSON)",
+                            False,
+                            "Result missing JSON format fields (hits, total_hits, query_sequence)",
                         )
                         return False
                 else:

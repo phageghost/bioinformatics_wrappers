@@ -73,13 +73,8 @@ import sys
 import signal
 import os
 
-# Import startup validation
-try:
-    from startup_check import validate_blast_configuration
-except ImportError:
-    # If startup_check is not available, create a dummy function
-    def validate_blast_configuration():
-        return True
+from startup_check import validate_blast_configuration
+
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -151,12 +146,12 @@ class CombinedServer:
     async def main(self):
         """Run FastAPI server with monitoring"""
         logger.info("Starting BLAST API server...")
-        
+
         # Validate configuration before starting
         if not validate_blast_configuration():
             logger.error("BLAST configuration validation failed. Exiting.")
             sys.exit(1)
-        
+
         # Set up signal handlers
         signal.signal(signal.SIGINT, self.signal_handler)
         signal.signal(signal.SIGTERM, self.signal_handler)

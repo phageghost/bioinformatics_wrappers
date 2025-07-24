@@ -11,6 +11,7 @@ from pathlib import Path
 
 BLAST_DB_PATH = "/blast_db"
 
+
 def validate_blast_configuration():
     """Validate BLAST configuration before startup"""
     print("🔍 Validating BLAST API Configuration...")
@@ -22,14 +23,16 @@ def validate_blast_configuration():
         print("\n" + "=" * 60)
         print("🚨 CONFIGURATION ERROR")
         print("=" * 60)
-        print(f"The BLAST API requires a volume mapping to {BLAST_DB_PATH} inside the container.")
+        print(
+            f"The BLAST API requires a volume mapping to {BLAST_DB_PATH} inside the container."
+        )
         print("\nTo fix this, you must provide a volume mapping:")
         print("\nOption 1 - Using docker run:")
         print(f"  docker run -v /host/path:{BLAST_DB_PATH} blast-api")
         print("\nOption 2 - Using docker-compose:")
         print("  # In docker-compose.yml:")
         print("  blast:")
-        print(f"    volumes:")
+        print("    volumes:")
         print(f"      - ./blast_databases:{BLAST_DB_PATH}")
         print("\nThe directory must exist on the host before starting the container.")
         print("=" * 60)
@@ -60,6 +63,7 @@ def validate_blast_configuration():
     print("✅ BLAST API configuration validation passed!")
     return True
 
+
 if __name__ == "__main__":
     if not validate_blast_configuration():
-        sys.exit(1) 
+        sys.exit(1)
