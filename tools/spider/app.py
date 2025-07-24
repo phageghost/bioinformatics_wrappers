@@ -1,8 +1,8 @@
 """
 SPIDER API - FastAPI Application Module
 
-This module provides a RESTful API wrapper for SPIDER (Stacking-based ensemble learning 
-framework for accurate prediction of druggable proteins). It includes both traditional 
+This module provides a RESTful API wrapper for SPIDER (Stacking-based ensemble learning
+framework for accurate prediction of druggable proteins). It includes both traditional
 REST endpoints and MCP-like endpoints for AI agent integration.
 
 The application serves as a bridge between the SPIDER bioinformatics tool and modern

@@ -1,42 +1,70 @@
 #!/usr/bin/env python3
 """
-Combined Server Entrypoint Module
+BLAST Combined Server Manager
 
-This module provides the main entrypoint for running the SPIDER API server in a Docker
-container. It manages the FastAPI application process with monitoring and graceful
-shutdown capabilities.
+This module provides a robust server management system for the BLAST API service,
+combining FastAPI server execution with process monitoring and graceful shutdown
+capabilities. It serves as the main entry point for running the BLAST API in
+containerized environments.
 
-The CombinedServer class handles:
-- Starting the FastAPI server with configurable port
-- Process monitoring and automatic restart on failure
-- Signal handling for graceful shutdown (SIGINT, SIGTERM)
-- Environment variable configuration (PORT)
-- Logging and error reporting
+The CombinedServer class provides:
+- FastAPI server process management and execution
+- Automatic process monitoring and restart capabilities
+- Graceful shutdown handling with signal management
+- Environment-based configuration (PORT, etc.)
+- Comprehensive logging and error handling
+- Health monitoring and recovery mechanisms
 
 Key Features:
-- Environment-based port configuration (defaults to 8000)
-- Automatic process restart on failure
-- Graceful shutdown with timeout handling
-- Comprehensive logging for Docker environments
-- Signal handling for container orchestration
+- Asynchronous process management using asyncio
+- Signal handling for SIGINT and SIGTERM (graceful shutdown)
+- Automatic restart of failed FastAPI processes
+- Environment variable configuration support
+- Detailed logging with structured output
+- Timeout-based process termination
+- Cross-platform compatibility
+
+Server Management:
+- Starts FastAPI server using uvicorn on configurable port
+- Monitors server health every 5 seconds
+- Automatically restarts server if it crashes
+- Handles graceful shutdown on container stop signals
+- Provides detailed logging of server lifecycle events
+
+Environment Configuration:
+- PORT: Server port (default: 8000)
+- Other environment variables passed through to FastAPI app
 
 Usage:
-    This module is typically executed as the main entrypoint in Docker containers.
-    It reads the PORT environment variable and starts the FastAPI server accordingly.
+    python run_combined_server.py                    # Run with default port 8000
+    PORT=4000 python run_combined_server.py         # Run on custom port
+    docker run -e PORT=8000 blast-api:latest        # Run in container
 
-Environment Variables:
-    PORT: Server port (default: 8000)
+Signal Handling:
+- SIGINT (Ctrl+C): Graceful shutdown
+- SIGTERM (docker stop): Graceful shutdown
+- Automatic process restart on unexpected failures
+
+Process Lifecycle:
+1. Initialize server manager
+2. Set up signal handlers
+3. Start FastAPI server process
+4. Monitor process health continuously
+5. Restart on failure or shutdown on signal
+6. Clean up resources on exit
 
 Dependencies:
-    - asyncio: Asynchronous I/O
-    - subprocess: Process management
-    - uvicorn: ASGI server for FastAPI
-    - signal: Signal handling
+    - asyncio: Asynchronous I/O and process management
+    - subprocess: Process creation and management
+    - signal: Signal handling for graceful shutdown
+    - logging: Structured logging and debugging
+    - uvicorn: ASGI server for FastAPI (external dependency)
 
 Author: Bioinformatics Wrappers Team
 Version: 1.0.0
 License: MIT
 """
+
 
 import asyncio
 import logging

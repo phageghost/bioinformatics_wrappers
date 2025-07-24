@@ -205,3 +205,8 @@ cython_debug/
 marimo/_static/
 marimo/_lsp/
 __marimo__/
+
+# BLAST
+tools/blast/blast_db/
+tools/blast/blast_output/
+tools/blast/dev.ipynb

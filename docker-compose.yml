@@ -3,13 +3,7 @@ services:
     image: spider-api:latest
     container_name: spider-api
     ports:
-      - "8000:8000"  # REST API and MCP-like endpoints
-    command: micromamba run -n api python run_combined_server.py
-    environment:
-      - SPIDER_HOME=/app/spider_tool
-      - PYTHONPATH=/app
-    volumes:
-      - spider_data:/app/spider_tool/output
+      - "8000:8000" 
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/api/v1/spider/health"]
@@ -20,43 +14,24 @@ services:
     networks:
       - bioinformatics_network
 
-  # Docker Registry with MinIO storage
-  registry:
-    image: registry:2
-    container_name: bioinformatics-registry
+  blast:
+    image: blast-api:latest
+    container_name: blast-api
     ports:
-      - "5000:5000"  # Docker registry API
+      - "8001:8000" 
     environment:
-      - REGISTRY_STORAGE=s3
-      - REGISTRY_STORAGE_S3_ACCESSKEY=admin
-      - REGISTRY_STORAGE_S3_SECRETKEY=password123
-      - REGISTRY_STORAGE_S3_REGION=us-east-1
-      - REGISTRY_STORAGE_S3_BUCKET=docker-registry
-      - REGISTRY_STORAGE_S3_ENDPOINT=http://minio:9000
-      - REGISTRY_STORAGE_S3_FORCEPATHSTYLE=true
-      - REGISTRY_HTTP_HOST=http://localhost:5000
+      - BLAST_DB_PATH=/blast_db
     volumes:
-      - registry_data:/var/lib/registry
+      - type: bind
+        source: ${BLAST_DB_PATH:?BLAST_DB_PATH environment variable is required}
+        target: /blast_db
     restart: unless-stopped
-    depends_on:
-      - minio
-    networks:
-      - bioinformatics_network
-
-  # MinIO object storage
-  minio:
-    image: minio/minio:latest
-    container_name: bioinformatics-minio
-    command: server /data --console-address ":9001"
-    ports:
-      - "9000:9000"  # MinIO API
-      - "9001:9001"  # MinIO Console
-    environment:
-      - MINIO_ROOT_USER=admin
-      - MINIO_ROOT_PASSWORD=password123
-    volumes:
-      - minio_data:/data
-    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/v1/blastp/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
     networks:
       - bioinformatics_network
 
@@ -77,10 +52,9 @@ services:
 volumes:
   spider_data:
     driver: local
-  registry_data:
+  blast_db_data:
     driver: local
-  minio_data:
-    driver: local
+
   # tool_name_data:
   #   driver: local
 

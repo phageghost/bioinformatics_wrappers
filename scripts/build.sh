@@ -195,6 +195,16 @@ build_tool() {
         docker buildx create --use --name bioinformatics-builder 2>/dev/null || true
     fi
     
+    # Prepare cache options
+    local cache_opts=""
+    if [[ "$NO_CACHE" == "true" ]]; then
+        cache_opts="--no-cache"
+        print_status "Building without cache"
+    else
+        cache_opts="--cache-from type=local,src=/tmp/.buildx-cache --cache-to type=local,dest=/tmp/.buildx-cache,mode=max"
+        print_status "Building with cache"
+    fi
+    
     # Build command based on platform
     if [[ "$platform" == "multi" ]]; then
         print_status "Building multi-arch image for $tool_name version $final_version"
@@ -202,6 +212,7 @@ build_tool() {
             --platform linux/amd64,linux/arm64 \
             -t "${tool_name}-api:${final_version}" \
             -t "${tool_name}-api:latest" \
+            $cache_opts \
             --load \
             "./tools/$tool_name"
     else
@@ -209,6 +220,7 @@ build_tool() {
         docker buildx build \
             --platform "linux/$platform" \
             -t "${tool_name}-api:${final_version}-${platform}" \
+            $cache_opts \
             --load \
             "./tools/$tool_name"
     fi
