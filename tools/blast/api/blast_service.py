@@ -27,15 +27,15 @@ Environment Variables:
 import os
 import subprocess
 from pathlib import Path
-from typing import Tuple
+from typing import Tuple, Union
 import logging
 
 try:
     # Try relative import first (for when imported as part of a package)
-    from .models import BLASTpResult
+    from .models import BLASTpResult, BLASTpJSONResult, BLASTpHit
 except ImportError:
     # Fall back to absolute import (for when run as script or from local directory)
-    from models import BLASTpResult
+    from models import BLASTpResult, BLASTpJSONResult, BLASTpHit
 
 DEFAULT_EVALUE = 1e-3
 DEFAULT_MAX_TARGET_SEQS = 20
@@ -51,10 +51,38 @@ class BLASTpService:
         db_path_env = os.environ.get("BLAST_DB_PATH")
         if not db_path and not db_path_env:
             raise ValueError(
-                "BLAST_DB_PATH environment variable must be set for database storage. "
-                "Example: docker run -e BLAST_DB_PATH=/blast_db -v /host/path:/blast_db your-image"
+                "BLAST_DB_PATH environment variable must be set for database storage.\n\n"
+                "To fix this, you must provide a volume mapping for BLAST databases:\n\n"
+                "Option 1 - Using docker run:\n"
+                "  docker run -e BLAST_DB_PATH=/blast_db -v /host/path:/blast_db blast-api\n\n"
+                "Option 2 - Using docker-compose (set BLAST_DB_PATH environment variable):\n"
+                "  BLAST_DB_PATH=/path/to/blast/databases docker-compose up blast\n\n"
+                "Option 3 - Using docker-compose with volume mapping:\n"
+                "  # In docker-compose.yml:\n"
+                "  blast:\n"
+                "    environment:\n"
+                "      - BLAST_DB_PATH=/blast_db\n"
+                "    volumes:\n"
+                "      - ./blast_databases:/blast_db\n\n"
+                "The BLAST_DB_PATH must point to a writable directory where BLAST databases will be stored."
             )
+        
         self.db_path = Path(db_path or db_path_env)
+        
+        # Validate that the database path is writable
+        try:
+            self.db_path.mkdir(parents=True, exist_ok=True)
+            # Test write access
+            test_file = self.db_path / ".test_write"
+            test_file.write_text("test")
+            test_file.unlink()
+        except (OSError, IOError) as e:
+            raise ValueError(
+                f"BLAST_DB_PATH '{self.db_path}' is not writable: {str(e)}\n\n"
+                "Please ensure the directory exists and has proper write permissions.\n"
+                "If using Docker, make sure the volume mapping is correct and the host directory is writable."
+            )
+        
         self.output_path = Path("blast_output")
         self.output_path.mkdir(exist_ok=True)
         self.checked_dbs = set()
@@ -100,24 +128,33 @@ class BLASTpService:
             return False
 
     def download_db(self, db_name: str):
-        """Download the requested BLAST database"""
-        self.logger.info(
-            "Downloading BLAST database (if not already downloaded): %s", db_name
-        )
-        self.db_path.mkdir(exist_ok=True)
-
-        self.logger.info("Moving to BLAST database path: %s", self.db_path)
-        cwd = os.getcwd()
-        os.chdir(self.db_path)
-
+        """Download and update BLAST database"""
         cmd = self._prefix_mm_env(
-            ["update_blastdb.pl", "--decompress", "--verbose", str(db_name)]
+            ["update_blastdb.pl", "--passive", "--decompress", db_name]
         )
         self.logger.info("Running update_blastdb.pl with command: %s", cmd)
-        output = subprocess.run(cmd, check=True, capture_output=True, text=True)
-        self.logger.info("Output: %s", output)
-
-        os.chdir(cwd)
+        
+        try:
+            result = subprocess.run(cmd, cwd=self.db_path, check=True, capture_output=True, text=True)
+            self.logger.info("update_blastdb.pl completed successfully")
+            self.logger.debug("update_blastdb.pl stdout: %s", result.stdout)
+        except subprocess.CalledProcessError as e:
+            error_msg = (
+                f"Failed to download BLAST database '{db_name}': {e}\n\n"
+                f"Command: {' '.join(cmd)}\n"
+                f"Working directory: {self.db_path}\n"
+                f"Exit code: {e.returncode}\n"
+                f"stdout: {e.stdout}\n"
+                f"stderr: {e.stderr}\n\n"
+                "Common solutions:\n"
+                "1. Check internet connectivity\n"
+                "2. Ensure BLAST_DB_PATH is writable\n"
+                "3. Try a different database (e.g., 'pdbaa' instead of 'nr')\n"
+                "4. Check available disk space\n"
+                "5. Verify the database name is correct"
+            )
+            self.logger.error(error_msg)
+            raise RuntimeError(error_msg)
 
     def run_blastp_search(
         self,
@@ -126,7 +163,9 @@ class BLASTpService:
         evalue: float = DEFAULT_EVALUE,
         max_target_seqs: int = DEFAULT_MAX_TARGET_SEQS,
         outfmt: str = DEFAULT_OUTFMT,
-    ) -> Tuple[bool, str, BLASTpResult]:
+        output_format: str = "table",
+        query_sequence: str = "",
+    ) -> Tuple[bool, str, Union[BLASTpResult, BLASTpJSONResult]]:
         """
         Run a BLASTp search using the provided protein FASTA file against the specified BLAST
               database.
@@ -140,12 +179,14 @@ class BLASTpService:
             max_target_seqs (int, optional): Maximum number of aligned sequences to keep. Defaults
                 to DEFAULT_MAX_TARGET_SEQS.
             outfmt (str, optional): Output format for BLASTp results. Defaults to DEFAULT_OUTFMT.
+            output_format (str, optional): Response format ("table" or "json"). Defaults to "table".
+            query_sequence (str, optional): Original query sequence for JSON output. Defaults to "".
 
         Returns:
-            Tuple[bool, str, BLASTpResult]:
+            Tuple[bool, str, Union[BLASTpResult, BLASTpJSONResult]]:
                 - Success status (bool)
                 - Message (str)
-                - BLASTp result (BLASTpResult)
+                - BLASTp result (BLASTpResult or BLASTpJSONResult)
         """
         output_fpath = self.output_path.joinpath("blastp_output.txt")
         db_fpath = self.db_path.joinpath(db_name)
@@ -159,6 +200,7 @@ class BLASTpService:
         self.logger.info("E-value: %s", evalue)
         self.logger.info("Output path: %s", output_fpath)
         self.logger.info("DB path: %s", db_fpath)
+        self.logger.info("Output format: %s", output_format)
 
         if db_name not in self.checked_dbs:
             self.logger.info("New db %s requested, running update_blastdb.pl", db_name)
@@ -211,8 +253,12 @@ class BLASTpService:
                 "BLASTp output file content: %s",
                 output_fpath.read_text(encoding="utf-8"),
             )
-            # Parse results
-            results = self._parse_blastp_table(output_fpath)
+            
+            # Parse results based on output format
+            if output_format.lower() == "json":
+                results = self._parse_blastp_json(output_fpath, query_sequence)
+            else:
+                results = self._parse_blastp_table(output_fpath)
 
             # Clean up
             if output_fpath.exists():
@@ -246,6 +292,50 @@ class BLASTpService:
         except (ValueError, IndexError, OSError, IOError) as e:
             self.logger.error("Error parsing BLASTp results: %s", e)
             return []
+
+    def _parse_blastp_json(
+        self, output_file: Path, query_sequence: str
+    ) -> BLASTpJSONResult:
+        """Parse BLASTp results into structured JSON format"""
+        try:
+            output_lines = output_file.read_text().strip().split("\n")
+            hits = []
+            
+            for line_idx, line in enumerate(output_lines):
+                if not line.strip():
+                    continue
+                    
+                # Parse tab-separated values
+                # Format: qseqid sseqid pident length evalue bitscore sscinames
+                parts = line.strip().split("\t")
+                
+                if len(parts) >= 6:
+                    try:
+                        hit = BLASTpHit(
+                            rank=line_idx + 1,
+                            query_id=parts[0],
+                            subject_id=parts[1],
+                            percent_identity=float(parts[2]),
+                            alignment_length=int(parts[3]),
+                            evalue=float(parts[4]),
+                            bitscore=float(parts[5]),
+                            organism=parts[6] if len(parts) > 6 else None
+                        )
+                        hits.append(hit)
+                    except (ValueError, IndexError) as e:
+                        self.logger.warning("Skipping malformed line %d: %s", line_idx + 1, e)
+                        continue
+
+            result = BLASTpJSONResult(
+                hits=hits,
+                total_hits=len(hits),
+                query_sequence=query_sequence
+            )
+            return result
+
+        except (ValueError, IndexError, OSError, IOError) as e:
+            self.logger.error("Error parsing BLASTp JSON results: %s", e)
+            return BLASTpJSONResult(hits=[], total_hits=0, query_sequence=query_sequence)
 
     def get_blastp_version(self) -> str:
         """Get the version of BLASTp"""

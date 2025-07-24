@@ -136,10 +136,51 @@ class BlastMCPEndpointTester:
                         )
                         return False
 
-                self.log_test(
-                    "Tool Schemas", True, f"All {len(tools)} tools have proper schemas"
-                )
-                return True
+                # Specifically check that perform_blastp_search has output_format parameter
+                blastp_tool = next((t for t in tools if t["name"] == "perform_blastp_search"), None)
+                if blastp_tool:
+                    input_schema = blastp_tool["inputSchema"]
+                    if "properties" in input_schema:
+                        properties = input_schema["properties"]
+                        if "output_format" in properties:
+                            output_format_prop = properties["output_format"]
+                            if (output_format_prop.get("type") == "string" and 
+                                "enum" in output_format_prop and 
+                                set(output_format_prop["enum"]) == {"table", "json"}):
+                                self.log_test(
+                                    "Tool Schemas",
+                                    True,
+                                    f"All {len(tools)} tools have proper schemas, output_format parameter validated"
+                                )
+                                return True
+                            else:
+                                self.log_test(
+                                    "Tool Schemas",
+                                    False,
+                                    "output_format parameter missing proper type or enum values"
+                                )
+                                return False
+                        else:
+                            self.log_test(
+                                "Tool Schemas",
+                                False,
+                                "perform_blastp_search missing output_format parameter"
+                            )
+                            return False
+                    else:
+                        self.log_test(
+                            "Tool Schemas",
+                            False,
+                            "perform_blastp_search inputSchema missing properties"
+                        )
+                        return False
+                else:
+                    self.log_test(
+                        "Tool Schemas",
+                        False,
+                        "perform_blastp_search tool not found"
+                    )
+                    return False
             else:
                 self.log_test("Tool Schemas", False, f"HTTP {response.status_code}")
                 return False
@@ -200,14 +241,14 @@ class BlastMCPEndpointTester:
             return False
 
     def test_perform_blastp_search_call_valid(self) -> bool:
-        """Test calling perform_blastp_search with valid sequence"""
+        """Test calling perform_blastp_search with valid sequence (table format)"""
         try:
             sequence = (
                 "MKTVRQERLKSIVRILERSKEPVSGAQLAEELSVSRQVIVQDIAYLRSLGYNIVATPRGYVLAGG"
             )
             payload = {
                 "name": "perform_blastp_search",
-                "arguments": {"sequence": sequence, "db_name": "pdbaa"},
+                "arguments": {"sequence": sequence, "db_name": "pdbaa", "output_format": "table"},
             }
             response = self.session.post(
                 f"{self.base_url}/mcp/call",
@@ -221,46 +262,112 @@ class BlastMCPEndpointTester:
                     if len(content) > 0 and "text" in content[0]:
                         text = content[0]["text"]
                         if (
-                            "BLASTp Search Results" in text
+                            "BLASTp Search Results (Table Format)" in text
                             and "Status: Success" in text
                         ):
                             self.log_test(
-                                "Perform BLASTp Search (Valid)",
+                                "Perform BLASTp Search (Valid - Table)",
                                 True,
-                                "Successfully performed BLASTp search",
+                                "Successfully performed BLASTp search with table format",
                             )
                             return True
                         else:
                             self.log_test(
-                                "Perform BLASTp Search (Valid)",
+                                "Perform BLASTp Search (Valid - Table)",
                                 False,
-                                "Response doesn't contain expected search results",
+                                "Response doesn't contain expected table format results",
                             )
                             return False
                     else:
                         self.log_test(
-                            "Perform BLASTp Search (Valid)",
+                            "Perform BLASTp Search (Valid - Table)",
                             False,
                             "Response missing content or text",
                         )
                         return False
                 else:
                     self.log_test(
-                        "Perform BLASTp Search (Valid)",
+                        "Perform BLASTp Search (Valid - Table)",
                         False,
                         "Response missing 'content' array",
                     )
                     return False
             else:
                 self.log_test(
-                    "Perform BLASTp Search (Valid)",
+                    "Perform BLASTp Search (Valid - Table)",
                     False,
                     f"HTTP {response.status_code}: {response.text}",
                 )
                 return False
         except (requests.RequestException, ValueError) as e:
             self.log_test(
-                "Perform BLASTp Search (Valid)", False, f"Exception: {str(e)}"
+                "Perform BLASTp Search (Valid - Table)", False, f"Exception: {str(e)}"
+            )
+            return False
+
+    def test_perform_blastp_search_call_json_format(self) -> bool:
+        """Test calling perform_blastp_search with JSON output format"""
+        try:
+            sequence = (
+                "MKTVRQERLKSIVRILERSKEPVSGAQLAEELSVSRQVIVQDIAYLRSLGYNIVATPRGYVLAGG"
+            )
+            payload = {
+                "name": "perform_blastp_search",
+                "arguments": {"sequence": sequence, "db_name": "pdbaa", "output_format": "json"},
+            }
+            response = self.session.post(
+                f"{self.base_url}/mcp/call",
+                headers={"Content-Type": "application/json"},
+                json=payload,
+            )
+            if response.status_code == 200:
+                data = response.json()
+                if "content" in data and isinstance(data["content"], list):
+                    content = data["content"]
+                    if len(content) > 0 and "text" in content[0]:
+                        text = content[0]["text"]
+                        if (
+                            "BLASTp Search Results (JSON Format)" in text
+                            and "Status: Success" in text
+                            and "Total Hits:" in text
+                        ):
+                            self.log_test(
+                                "Perform BLASTp Search (Valid - JSON)",
+                                True,
+                                "Successfully performed BLASTp search with JSON format",
+                            )
+                            return True
+                        else:
+                            self.log_test(
+                                "Perform BLASTp Search (Valid - JSON)",
+                                False,
+                                "Response doesn't contain expected JSON format results",
+                            )
+                            return False
+                    else:
+                        self.log_test(
+                            "Perform BLASTp Search (Valid - JSON)",
+                            False,
+                            "Response missing content or text",
+                        )
+                        return False
+                else:
+                    self.log_test(
+                        "Perform BLASTp Search (Valid - JSON)",
+                        False,
+                        "Response missing 'content' array",
+                    )
+                    return False
+            else:
+                self.log_test(
+                    "Perform BLASTp Search (Valid - JSON)",
+                    False,
+                    f"HTTP {response.status_code}: {response.text}",
+                )
+                return False
+        except (requests.RequestException, ValueError) as e:
+            self.log_test(
+                "Perform BLASTp Search (Valid - JSON)", False, f"Exception: {str(e)}"
             )
             return False
 
@@ -511,6 +618,7 @@ class BlastMCPEndpointTester:
             self.test_tool_schemas,
             self.test_get_tool_info_call,
             self.test_perform_blastp_search_call_valid,
+            self.test_perform_blastp_search_call_json_format,
             self.test_perform_blastp_search_call_with_parameters,
             self.test_perform_blastp_search_call_invalid_empty,
             self.test_perform_blastp_search_call_invalid_missing,

@@ -1,4 +1,5 @@
 services:
+  # SPIDER service - Protein druggability prediction
   spider:
     image: spider-api:latest
     container_name: spider-api
@@ -14,6 +15,9 @@ services:
     networks:
       - bioinformatics_network
 
+  # BLAST service - Protein sequence similarity search
+  # NOTE: BLAST_DB_PATH environment variable must be set to a local directory path
+  # Example: export BLAST_DB_PATH=./blast_databases
   blast:
     image: blast-api:latest
     container_name: blast-api
@@ -23,7 +27,7 @@ services:
       - BLAST_DB_PATH=/blast_db
     volumes:
       - type: bind
-        source: ${BLAST_DB_PATH:?BLAST_DB_PATH environment variable is required}
+        source: ${BLAST_DB_PATH:?BLAST_DB_PATH environment variable is required. Set it to a local directory path, e.g., export BLAST_DB_PATH=./blast_databases}
         target: /blast_db
     restart: unless-stopped
     healthcheck:

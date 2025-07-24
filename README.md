@@ -44,6 +44,16 @@ bioinformatics_wrappers/
 * **Input**: A single protein sequence (sequence only, no header)
 * **Output**: Druggability prediction for the sequence, expressed as a float in the range 0-1
 
+### BLAST (Basic Local Alignment Search Tool)
+* **Description**: Protein sequence similarity search against BLAST databases
+* **Source**: NCBI BLAST+ suite
+* **Port**: User-specified (defaults to 8000)
+* **Protocols**: REST API + MCP-like endpoints
+* **Input**: Protein sequence in FASTA format
+* **Output**: 
+  - **Table format** (default): Formatted text report with ranked hits
+  - **JSON format**: Structured data with individual hit details including identity, e-value, bitscore, and organism information
+
 ## ⚡ Quick Start
 
 ### Using Docker Compose (Recommended)
@@ -237,6 +247,105 @@ curl -X POST http://localhost:8000/mcp/call \
     }
   }'
 ```
+
+### BLAST API Usage
+
+#### Health Check
+```bash
+curl http://localhost:8000/api/v1/blastp/health
+```
+
+#### Get Tool Information
+```bash
+curl http://localhost:8000/api/v1/blastp/info
+```
+
+#### Search Protein Sequence (Table Format - Default)
+```bash
+curl -X POST "http://localhost:8000/api/v1/blastp/search" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "sequence": "MKTVRQERLKSIVRILERSKEPVSGAQLAEELSVSRQVIVQDIAYLRSLGYNIVATPRGYVLAGG",
+    "db_name": "nr",
+    "evalue": 0.001,
+    "max_target_seqs": 10,
+    "output_format": "table"
+  }'
+```
+
+#### Search Protein Sequence (JSON Format)
+```bash
+curl -X POST "http://localhost:8000/api/v1/blastp/search" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "sequence": "MKTVRQERLKSIVRILERSKEPVSGAQLAEELSVSRQVIVQDIAYLRSLGYNIVATPRGYVLAGG",
+    "db_name": "nr",
+    "evalue": 0.001,
+    "max_target_seqs": 10,
+    "output_format": "json"
+  }'
+```
+
+#### MCP-like BLAST Search (JSON Format)
+```bash
+curl -X POST http://localhost:8000/mcp/call \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "perform_blastp_search", 
+    "arguments": {
+      "sequence": "MKTVRQERLKSIVRILERSKEPVSGAQLAEELSVSRQVIVQDIAYLRSLGYNIVATPRGYVLAGG",
+      "db_name": "nr",
+      "evalue": 0.001,
+      "max_target_seqs": 10,
+      "output_format": "json"
+    }
+  }'
+```
+
+## 📊 Output Formats
+
+### BLAST Output Format Comparison
+
+The BLAST API supports two output formats controlled by the `output_format` parameter:
+
+#### Table Format (Default: `output_format: "table"`)
+Returns a formatted text report suitable for human reading:
+```json
+{
+  "status": "success",
+  "result": {
+    "report": "rank\tid\tidentity%\talign_len\te-value\tbitscore\torganism\n1\tsp|P12345|TEST1_HUMAN\t95.2\t156\t2.3e-45\t180.5\tHomo sapiens\n..."
+  }
+}
+```
+
+#### JSON Format (`output_format: "json"`)
+Returns structured data suitable for programmatic access:
+```json
+{
+  "status": "success",
+  "result": {
+    "hits": [
+      {
+        "rank": 1,
+        "query_id": "sequence",
+        "subject_id": "sp|P12345|TEST1_HUMAN",
+        "percent_identity": 95.2,
+        "alignment_length": 156,
+        "evalue": 2.3e-45,
+        "bitscore": 180.5,
+        "organism": "Homo sapiens"
+      }
+    ],
+    "total_hits": 10,
+    "query_sequence": "MKTVRQERLKSIVRILERSKEPVSGAQLAEELSVSRQVIVQDIAYLRSLGYNIVATPRGYVLAGG"
+  }
+}
+```
+
+**Use Cases:**
+- **Table format**: Human-readable reports, display in terminals, simple text processing
+- **JSON format**: Programmatic integration, data analysis, automated workflows, AI agent processing
 
 ## 🧪 Testing
 

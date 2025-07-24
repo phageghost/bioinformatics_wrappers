@@ -106,7 +106,19 @@ version = open("VERSION", "r", encoding="utf-8").read().strip()
 
 
 # Initialize BLASTp service
-blastp_service = BLASTpService()
+try:
+    blastp_service = BLASTpService()
+except ValueError as e:
+    print("=" * 80)
+    print("❌ BLAST API Configuration Error")
+    print("=" * 80)
+    print(str(e))
+    print("=" * 80)
+    print("The BLAST API cannot start without proper database configuration.")
+    print("Please fix the configuration issue and restart the service.")
+    print("=" * 80)
+    import sys
+    sys.exit(1)
 
 
 # Initialize FastAPI app
@@ -187,6 +199,8 @@ async def search_protein_sequence(request: SearchRequest):
                 evalue=request.evalue,
                 max_target_seqs=request.max_target_seqs,
                 outfmt=request.outfmt,
+                output_format=request.output_format,
+                query_sequence=request.sequence,
             )
 
             if not success:
@@ -248,6 +262,13 @@ async def list_mcp_tools():
 evalue bitscore sscinames)",
                             "default": "6 qseqid sseqid pident length evalue bitscore sscinames",
                         },
+                        "output_format": {
+                            "type": "string",
+                            "description": "Response format: 'table' for formatted text or 'json' \
+for structured data (default: table)",
+                            "default": "table",
+                            "enum": ["table", "json"],
+                        },
                     },
                     "required": ["sequence"],
                 },
@@ -282,6 +303,7 @@ async def call_mcp_tool(request: dict):
         outfmt = arguments.get(
             "outfmt", "6 qseqid sseqid pident length evalue bitscore sscinames"
         )
+        output_format = arguments.get("output_format", "table")
 
         start_time = time.time()
         with tempfile.NamedTemporaryFile(delete=False, suffix=".fasta") as temp_file:
@@ -300,6 +322,8 @@ async def call_mcp_tool(request: dict):
                     evalue=evalue,
                     max_target_seqs=max_target_seqs,
                     outfmt=outfmt,
+                    output_format=output_format,
+                    query_sequence=sequence,
                 )
                 if not success:
                     raise HTTPException(
@@ -308,13 +332,35 @@ async def call_mcp_tool(request: dict):
                     )
                 processing_time = time.time() - start_time
 
-                if hasattr(result, "report"):
-                    report = result.report
-                else:
-                    report = "Unknown"
+                if output_format.lower() == "json" and hasattr(result, "hits"):
+                    # JSON format response
+                    result_text = f"""
+BLASTp Search Results (JSON Format):
+- Status: Success
+- Total Hits: {result.total_hits}
+- Query Sequence: {result.query_sequence[:50]}{'...' if len(result.query_sequence) > 50 else ''}
+- Processing Time: {round(processing_time, 2)}s
 
-                result_text = f"""
-BLASTp Search Results:
+Top Hits:
+"""
+                    for i, hit in enumerate(result.hits[:5]):  # Show top 5 hits
+                        result_text += f"""
+{i+1}. {hit.subject_id}
+   - Identity: {hit.percent_identity}%
+   - Alignment Length: {hit.alignment_length}
+   - E-value: {hit.evalue}
+   - Bitscore: {hit.bitscore}
+   - Organism: {hit.organism or 'Unknown'}
+"""
+                else:
+                    # Table format response
+                    if hasattr(result, "report"):
+                        report = result.report
+                    else:
+                        report = "Unknown"
+
+                    result_text = f"""
+BLASTp Search Results (Table Format):
 - Status: Success
 - Report: {report}
 - Message: {message}

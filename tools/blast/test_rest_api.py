@@ -156,14 +156,14 @@ class BlastRESTAPITester:
             return False
 
     def test_search_endpoint_valid(self) -> bool:
-        """Test search endpoint with valid sequence"""
+        """Test search endpoint with valid sequence (table format)"""
         try:
             sequence = (
                 "MKTVRQERLKSIVRILERSKEPVSGAQLAEELSVSRQVIVQDIAYLRSLGYNIVATPRGYVLAGG"
             )
             response = self.session.post(
                 f"{self.base_url}/api/v1/blastp/search",
-                json={"sequence": sequence, "db_name": "pdbaa"},
+                json={"sequence": sequence, "db_name": "pdbaa", "output_format": "table"},
             )
             if response.status_code == 200:
                 data = response.json()
@@ -178,7 +178,7 @@ class BlastRESTAPITester:
                     result = data["result"]
                     if hasattr(result, "report") or "report" in result:
                         self.log_test(
-                            "Search (Valid)",
+                            "Search (Valid - Table)",
                             True,
                             (
                                 f"Status: {data['status']}, "
@@ -188,25 +188,102 @@ class BlastRESTAPITester:
                         return True
                     else:
                         self.log_test(
-                            "Search (Valid)", False, "Result missing report field"
+                            "Search (Valid - Table)", False, "Result missing report field"
                         )
                         return False
                 else:
                     self.log_test(
-                        "Search (Valid)",
+                        "Search (Valid - Table)",
                         False,
                         f"Missing fields: {expected_fields}",
                     )
                     return False
             else:
                 self.log_test(
-                    "Search (Valid)",
+                    "Search (Valid - Table)",
                     False,
                     f"HTTP {response.status_code}: {response.text}",
                 )
                 return False
         except (requests.RequestException, ValueError) as e:
-            self.log_test("Search (Valid)", False, f"Exception: {str(e)}")
+            self.log_test("Search (Valid - Table)", False, f"Exception: {str(e)}")
+            return False
+
+    def test_search_endpoint_json_format(self) -> bool:
+        """Test search endpoint with JSON output format"""
+        try:
+            sequence = (
+                "MKTVRQERLKSIVRILERSKEPVSGAQLAEELSVSRQVIVQDIAYLRSLGYNIVATPRGYVLAGG"
+            )
+            response = self.session.post(
+                f"{self.base_url}/api/v1/blastp/search",
+                json={"sequence": sequence, "db_name": "pdbaa", "output_format": "json"},
+            )
+            if response.status_code == 200:
+                data = response.json()
+                expected_fields = [
+                    "status",
+                    "message",
+                    "result",
+                    "processing_time",
+                    "timestamp",
+                ]
+                if all(field in data for field in expected_fields):
+                    result = data["result"]
+                    # Check for JSON format specific fields
+                    if "hits" in result and "total_hits" in result and "query_sequence" in result:
+                        hits = result["hits"]
+                        if isinstance(hits, list) and len(hits) > 0:
+                            # Check structure of first hit
+                            first_hit = hits[0]
+                            hit_fields = ["rank", "query_id", "subject_id", "percent_identity", 
+                                        "alignment_length", "evalue", "bitscore"]
+                            if all(field in first_hit for field in hit_fields):
+                                self.log_test(
+                                    "Search (Valid - JSON)",
+                                    True,
+                                    (
+                                        f"Status: {data['status']}, "
+                                        f"Total Hits: {result['total_hits']}, "
+                                        f"Processing Time: {data['processing_time']}s"
+                                    ),
+                                )
+                                return True
+                            else:
+                                self.log_test(
+                                    "Search (Valid - JSON)", 
+                                    False, 
+                                    f"Hit missing fields: {hit_fields}"
+                                )
+                                return False
+                        else:
+                            self.log_test(
+                                "Search (Valid - JSON)", False, "No hits in results"
+                            )
+                            return False
+                    else:
+                        self.log_test(
+                            "Search (Valid - JSON)", 
+                            False, 
+                            "Result missing JSON format fields (hits, total_hits, query_sequence)"
+                        )
+                        return False
+                else:
+                    self.log_test(
+                        "Search (Valid - JSON)",
+                        False,
+                        f"Missing fields: {expected_fields}",
+                    )
+                    return False
+            else:
+                self.log_test(
+                    "Search (Valid - JSON)",
+                    False,
+                    f"HTTP {response.status_code}: {response.text}",
+                )
+                return False
+        except (requests.RequestException, ValueError) as e:
+            self.log_test("Search (Valid - JSON)", False, f"Exception: {str(e)}")
             return False
 
     def test_search_endpoint_invalid(self) -> bool:
@@ -301,6 +378,7 @@ class BlastRESTAPITester:
             self.test_root_endpoint,
             self.test_tool_info_endpoint,
             self.test_search_endpoint_valid,
+            self.test_search_endpoint_json_format,
             self.test_search_endpoint_invalid,
             self.test_search_endpoint_missing,
             self.test_documentation_endpoints,

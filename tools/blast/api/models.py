@@ -27,6 +27,12 @@ BLASTpResult:
     Represents individual BLAST search results with formatted report output.
     Contains the parsed and formatted search results from BLASTp execution.
 
+BLASTpHit:
+    Represents a single BLAST hit with structured data fields.
+
+BLASTpJSONResult:
+    Represents BLAST search results in structured JSON format.
+
 SearchResponse:
     Comprehensive search response including status, message, results, processing time,
     and timestamp. Provides complete information about the search operation.
@@ -43,13 +49,14 @@ SearchRequest Fields:
     - evalue: E-value threshold for significance (default: 0.001, float)
     - max_target_seqs: Maximum number of target sequences (default: 20, int)
     - outfmt: Output format specification (default: tabular with organism names, string)
+    - output_format: Response format ("table" or "json", default: "table")
 
 Response Fields:
     - status: Operation status ("success", "error", "healthy", etc.)
     - message: Human-readable operation message
     - timestamp: ISO format timestamp of operation
     - processing_time: Execution time in seconds (float)
-    - result: BLASTpResult object containing search results
+    - result: BLASTpResult or BLASTpJSONResult object containing search results
     - error: Error type/code for error responses
 
 Validation Features:
@@ -66,7 +73,8 @@ Usage Examples:
     request = SearchRequest(
         sequence="MKTVRQERLKSIVRILERSKEPVSGAQLAEELSVSRQVIVQDIAYLRSLGYNIVATPRGYVLAGG",
         db_name="pdbaa",
-        evalue=0.01
+        evalue=0.01,
+        output_format="json"
     )
     
     # Create a health response
@@ -99,8 +107,9 @@ License: MIT
 """
 
 from datetime import datetime
+from typing import List, Optional, Union
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class HealthResponse(BaseModel):
@@ -120,12 +129,34 @@ class SearchRequest(BaseModel):
     evalue: float = 1e-3
     max_target_seqs: int = 20
     outfmt: str = "6 qseqid sseqid pident length evalue bitscore sscinames"
+    output_format: str = Field(default="table", description="Output format: 'table' or 'json'")
+
+
+class BLASTpHit(BaseModel):
+    """Individual BLAST hit with structured data"""
+
+    rank: int
+    query_id: str
+    subject_id: str
+    percent_identity: float
+    alignment_length: int
+    evalue: float
+    bitscore: float
+    organism: Optional[str] = None
 
 
 class BLASTpResult(BaseModel):
-    """Individual search result"""
+    """Individual search result with table format"""
 
     report: str
+
+
+class BLASTpJSONResult(BaseModel):
+    """Search result with structured JSON format"""
+
+    hits: List[BLASTpHit]
+    total_hits: int
+    query_sequence: str
 
 
 class SearchResponse(BaseModel):
@@ -133,7 +164,7 @@ class SearchResponse(BaseModel):
 
     status: str
     message: str
-    result: BLASTpResult
+    result: Union[BLASTpResult, BLASTpJSONResult]
     processing_time: float
     timestamp: datetime
 
