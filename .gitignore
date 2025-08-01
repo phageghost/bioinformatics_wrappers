@@ -210,3 +210,6 @@ __marimo__/
 tools/blast/blast_db/
 tools/blast/blast_output/
 tools/blast/dev.ipynb
+
+# Docker
+.docker_temp*
