@@ -48,8 +48,14 @@ class BLASTpService:
     """Service class for running BLASTp searches"""
 
     def __init__(self, db_path: Path | str = None, mm_env: str = None):
+        # Setup logging
+        logging.basicConfig(level=logging.INFO)
+        self.logger = logging.getLogger(__name__)
+        self.logger.info("Initializing BLASTpService")
+
         db_path_env = os.environ.get("BLAST_DB_PATH")
         if not db_path and not db_path_env:
+            self.logger.error("db_path not specified andBLAST_DB_PATH environment variable not set, complaining to user ...")
             raise ValueError(
                 "BLAST_DB_PATH environment variable must be set for database storage.\n\n"
                 "To fix this, you must provide a volume mapping for BLAST databases:\n\n"
@@ -69,6 +75,7 @@ be stored."
             )
 
         self.db_path = Path(db_path or db_path_env)
+        self.logger.info(f"db_path: {self.db_path}")
 
         # Validate that the database path is writable
         try:
@@ -78,6 +85,7 @@ be stored."
             test_file.write_text("test")
             test_file.unlink()
         except (OSError, IOError) as e:
+            self.logger.error(f"db path '{self.db_path}' is not writable: {str(e)}\n\n")
             raise ValueError(
                 f"BLAST_DB_PATH '{self.db_path}' is not writable: {str(e)}\n\n"
                 "Please ensure the directory exists and has proper write permissions.\n"
@@ -86,14 +94,19 @@ is writable."
             ) from e
 
         self.output_path = Path("blast_output")
+        self.logger.info("output_path: %s", self.output_path)
         self.output_path.mkdir(exist_ok=True)
         self.checked_dbs = set()
         self.mm_env = mm_env or os.environ.get("BLAST_MM_ENV", "blast")
-
-        # Setup logging
-        logging.basicConfig(level=logging.INFO)
-        self.logger = logging.getLogger(__name__)
-
+        self.logger.info("mm_env: %s", self.mm_env)
+        auto_update_env = os.environ.get("AUTO_UPDATE")
+        if auto_update_env.lower() == "true":
+            self.logger.info("AUTO_UPDATE is true, will auto update databases")
+            self.auto_update = True
+        else:
+            self.logger.info("AUTO_UPDATE is not true, will not auto update databases")
+            self.auto_update = False
+ 
     def _prefix_mm_env(self, cmd: list[str]) -> list[str]:
         return ["micromamba", "run", "-n", self.mm_env] + cmd
 
@@ -131,6 +144,10 @@ is writable."
 
     def download_db(self, db_name: str):
         """Download and update BLAST database"""
+        if not self.auto_update:
+            self.logger.info("AUTO_UPDATE is false, will not auto update databases")
+            return
+
         cmd = self._prefix_mm_env(
             ["update_blastdb.pl", "--passive", "--decompress", db_name]
         )

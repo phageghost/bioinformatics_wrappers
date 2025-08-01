@@ -46,6 +46,7 @@ ENV BLAST_DB_PATH=/blast_db
 ENV PYTHONPATH=/app
 ENV VERSION=${VERSION}
 ENV PORT=8000
+ENV AUTO_UPDATE=false
 
 # Add labels for better image management
 LABEL org.opencontainers.image.title="BLAST API"
