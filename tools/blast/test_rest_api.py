@@ -389,6 +389,105 @@ class BlastRESTAPITester:
             self.log_test("404 Handling", False, f"Exception: {str(e)}")
             return False
 
+    def test_download_db_endpoint_valid(self) -> bool:
+        """Test download database endpoint with valid database name"""
+        try:
+            response = self.session.post(
+                f"{self.base_url}/api/v1/blastp/download_db",
+                json={"db": "mito"},
+            )
+            if response.status_code == 200:
+                data = response.json()
+                expected_fields = [
+                    "status",
+                    "message",
+                    "db_name",
+                    "processing_time",
+                    "timestamp",
+                ]
+                if all(field in data for field in expected_fields):
+                    if data["status"] == "success" and data["db_name"] == "mito":
+                        self.log_test(
+                            "Download DB (Valid)",
+                            True,
+                            (
+                                f"Status: {data['status']}, "
+                                f"Database: {data['db_name']}, "
+                                f"Processing Time: {data['processing_time']}s"
+                            ),
+                        )
+                        return True
+                    else:
+                        self.log_test(
+                            "Download DB (Valid)",
+                            False,
+                            f"Unexpected status or database name: {data}",
+                        )
+                        return False
+                else:
+                    self.log_test(
+                        "Download DB (Valid)",
+                        False,
+                        f"Missing fields: {expected_fields}",
+                    )
+                    return False
+            else:
+                self.log_test(
+                    "Download DB (Valid)",
+                    False,
+                    f"HTTP {response.status_code}: {response.text}",
+                )
+                return False
+        except (requests.RequestException, ValueError) as e:
+            self.log_test("Download DB (Valid)", False, f"Exception: {str(e)}")
+            return False
+
+    def test_download_db_endpoint_invalid_empty(self) -> bool:
+        """Test download database endpoint with empty database name"""
+        try:
+            response = self.session.post(
+                f"{self.base_url}/api/v1/blastp/download_db", json={"db": ""}
+            )
+            if response.status_code == 400:
+                self.log_test(
+                    "Download DB (Invalid - Empty)",
+                    True,
+                    "Correctly rejected empty database name",
+                )
+                return True
+            else:
+                self.log_test(
+                    "Download DB (Invalid - Empty)",
+                    False,
+                    f"Expected 400, got {response.status_code}",
+                )
+                return False
+        except (requests.RequestException, ValueError) as e:
+            self.log_test("Download DB (Invalid - Empty)", False, f"Exception: {str(e)}")
+            return False
+
+    def test_download_db_endpoint_missing(self) -> bool:
+        """Test download database endpoint with missing database parameter"""
+        try:
+            response = self.session.post(f"{self.base_url}/api/v1/blastp/download_db")
+            if response.status_code == 422:  # FastAPI validation error
+                self.log_test(
+                    "Download DB (Invalid - Missing)",
+                    True,
+                    "Correctly rejected missing database parameter",
+                )
+                return True
+            else:
+                self.log_test(
+                    "Download DB (Invalid - Missing)",
+                    False,
+                    f"Expected 422, got {response.status_code}",
+                )
+                return False
+        except (requests.RequestException, ValueError) as e:
+            self.log_test("Download DB (Invalid - Missing)", False, f"Exception: {str(e)}")
+            return False
+
     def run_all_tests(self) -> Dict[str, Any]:
         """Run all tests and return summary"""
         print("🧪 Testing BLAST REST API Endpoints")
@@ -402,6 +501,9 @@ class BlastRESTAPITester:
             self.test_search_endpoint_json_format,
             self.test_search_endpoint_invalid,
             self.test_search_endpoint_missing,
+            self.test_download_db_endpoint_valid,
+            self.test_download_db_endpoint_invalid_empty,
+            self.test_download_db_endpoint_missing,
             self.test_documentation_endpoints,
             self.test_nonexistent_endpoint,
         ]

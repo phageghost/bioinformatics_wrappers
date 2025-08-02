@@ -90,7 +90,7 @@ class BlastMCPEndpointTester:
                 data = response.json()
                 if "tools" in data and isinstance(data["tools"], list):
                     tools = data["tools"]
-                    expected_tools = ["perform_blastp_search", "get_tool_info"]
+                    expected_tools = ["perform_blastp_search", "get_tool_info", "download_blast_database"]
                     tool_names = [tool["name"] for tool in tools]
 
                     if all(tool in tool_names for tool in expected_tools):
@@ -619,6 +619,129 @@ parameter validated",
             self.log_test("MCP Endpoint Structure", False, f"Exception: {str(e)}")
             return False
 
+    def test_download_blast_database_call_valid(self) -> bool:
+        """Test calling download_blast_database with valid database name"""
+        try:
+            payload = {
+                "name": "download_blast_database",
+                "arguments": {"db": "mito"},
+            }
+            response = self.session.post(
+                f"{self.base_url}/mcp/call",
+                headers={"Content-Type": "application/json"},
+                json=payload,
+            )
+            if response.status_code == 200:
+                data = response.json()
+                if "content" in data and isinstance(data["content"], list):
+                    content = data["content"]
+                    if len(content) > 0 and "text" in content[0]:
+                        text = content[0]["text"]
+                        if (
+                            "BLAST Database Download Results" in text
+                            and "Status: Success" in text
+                            and "Database: mito" in text
+                        ):
+                            self.log_test(
+                                "Download BLAST Database (Valid)",
+                                True,
+                                "Successfully downloaded BLAST database",
+                            )
+                            return True
+                        else:
+                            self.log_test(
+                                "Download BLAST Database (Valid)",
+                                False,
+                                "Response doesn't contain expected download results",
+                            )
+                            return False
+                    else:
+                        self.log_test(
+                            "Download BLAST Database (Valid)",
+                            False,
+                            "Response missing content or text",
+                        )
+                        return False
+                else:
+                    self.log_test(
+                        "Download BLAST Database (Valid)",
+                        False,
+                        "Response missing 'content' array",
+                    )
+                    return False
+            else:
+                self.log_test(
+                    "Download BLAST Database (Valid)",
+                    False,
+                    f"HTTP {response.status_code}: {response.text}",
+                )
+                return False
+        except (requests.RequestException, ValueError) as e:
+            self.log_test(
+                "Download BLAST Database (Valid)", False, f"Exception: {str(e)}"
+            )
+            return False
+
+    def test_download_blast_database_call_invalid_empty(self) -> bool:
+        """Test calling download_blast_database with empty database name"""
+        try:
+            payload = {"name": "download_blast_database", "arguments": {"db": ""}}
+            response = self.session.post(
+                f"{self.base_url}/mcp/call",
+                headers={"Content-Type": "application/json"},
+                json=payload,
+            )
+            if response.status_code == 400:
+                self.log_test(
+                    "Download BLAST Database (Invalid - Empty)",
+                    True,
+                    "Correctly rejected empty database name",
+                )
+                return True
+            else:
+                self.log_test(
+                    "Download BLAST Database (Invalid - Empty)",
+                    False,
+                    f"Expected 400, got {response.status_code}",
+                )
+                return False
+        except (requests.RequestException, ValueError) as e:
+            self.log_test(
+                "Download BLAST Database (Invalid - Empty)", False, f"Exception: {str(e)}"
+            )
+            return False
+
+    def test_download_blast_database_call_invalid_missing(self) -> bool:
+        """Test calling download_blast_database with missing database parameter"""
+        try:
+            payload = {"name": "download_blast_database", "arguments": {}}
+            response = self.session.post(
+                f"{self.base_url}/mcp/call",
+                headers={"Content-Type": "application/json"},
+                json=payload,
+            )
+            if response.status_code == 400:
+                self.log_test(
+                    "Download BLAST Database (Invalid - Missing)",
+                    True,
+                    "Correctly rejected missing database parameter",
+                )
+                return True
+            else:
+                self.log_test(
+                    "Download BLAST Database (Invalid - Missing)",
+                    False,
+                    f"Expected 400, got {response.status_code}",
+                )
+                return False
+        except (requests.RequestException, ValueError) as e:
+            self.log_test(
+                "Download BLAST Database (Invalid - Missing)",
+                False,
+                f"Exception: {str(e)}",
+            )
+            return False
+
     def run_all_tests(self) -> Dict[str, Any]:
         """Run all tests and return summary"""
         print("🧪 Testing BLAST MCP-like Endpoints")
@@ -633,6 +756,9 @@ parameter validated",
             self.test_perform_blastp_search_call_with_parameters,
             self.test_perform_blastp_search_call_invalid_empty,
             self.test_perform_blastp_search_call_invalid_missing,
+            self.test_download_blast_database_call_valid,
+            self.test_download_blast_database_call_invalid_empty,
+            self.test_download_blast_database_call_invalid_missing,
             self.test_unknown_tool_call,
             self.test_malformed_json,
             self.test_missing_content_type,

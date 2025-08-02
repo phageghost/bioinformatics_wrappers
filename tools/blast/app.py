@@ -20,12 +20,18 @@ REST API Endpoints:
 - GET /api/v1/blastp/health: Health check endpoint
 - GET /api/v1/blastp/info: Tool information and metadata
 - POST /api/v1/blastp/search: Protein sequence search with full parameter control
+- POST /api/v1/blastp/download_db: Download and update BLAST database
 - GET /docs: Interactive API documentation (Swagger UI)
 - GET /redoc: Alternative API documentation (ReDoc)
 
 MCP-like Endpoints (AI Agent Integration):
 - GET /mcp/tools: Discover available tools and their schemas
 - POST /mcp/call: Execute tools with provided arguments
+
+Available MCP Tools:
+- perform_blastp_search: Search protein sequences against BLAST databases
+- get_tool_info: Get information about the BLASTp tool
+- download_blast_database: Download and update BLAST databases
 
 Search Parameters:
 - sequence: Protein sequence to search (required)
@@ -64,7 +70,17 @@ Usage:
          -d '{"name": "perform_blastp_search", "arguments": 
             {"sequence": "MKTVRQERLKSIVRILERSKEPVSGAQLAEELSVSRQVIVQDIAYLRSLGYNIVATPRGYVLAGG",
              "db_name": "pdbaa", "evalue": 0.001, "max_target_seqs": 20, 
-             }'
+             }}'
+    
+    # Example database download
+    curl -X POST "http://localhost:8000/api/v1/blastp/download_db" \
+         -H "Content-Type: application/json" \
+         -d '{"db": "mito"}'
+    
+    # Example MCP database download
+    curl -X POST "http://localhost:8000/mcp/call" \
+         -H "Content-Type: application/json" \
+         -d '{"name": "download_blast_database", "arguments": {"db": "mito"}}'
 
 Environment Variables:
 - BLAST_DB_PATH: Path to BLAST database directory (set by container)
@@ -94,11 +110,11 @@ from fastapi.middleware.cors import CORSMiddleware
 
 try:
     # Try relative imports first (for when imported as part of a package)
-    from .api.models import HealthResponse, SearchResponse, SearchRequest
+    from .api.models import HealthResponse, SearchResponse, SearchRequest, DownloadDBRequest, DownloadDBResponse
     from .api.blast_service import BLASTpService
 except ImportError:
     # Fall back to absolute imports (for when run as script or from local directory)
-    from api.models import HealthResponse, SearchResponse, SearchRequest
+    from api.models import HealthResponse, SearchResponse, SearchRequest, DownloadDBRequest, DownloadDBResponse
     from api.blast_service import BLASTpService
 
 
@@ -225,6 +241,38 @@ async def search_protein_sequence(request: SearchRequest):
                 os.unlink(temp_file.name)
 
 
+@app.post("/api/v1/blastp/download_db", response_model=DownloadDBResponse)
+async def download_database(request: DownloadDBRequest):
+    """Download a BLAST database"""
+    start_time = time.time()
+
+    # Validate database name
+    if not request.db:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail="No database name provided"
+        )
+
+    try:
+        # Call the download_db method
+        blastp_service.download_db(request.db)
+        
+        processing_time = time.time() - start_time
+        
+        return DownloadDBResponse(
+            status="success",
+            message=f"Successfully downloaded database '{request.db}'",
+            db_name=request.db,
+            processing_time=round(processing_time, 2),
+            timestamp=datetime.now(),
+        )
+    except Exception as e:
+        processing_time = time.time() - start_time
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to download database '{request.db}': {str(e)}",
+        )
+
+
 # MCP-like endpoints for AI agents
 @app.get("/mcp/tools")
 async def list_mcp_tools():
@@ -279,6 +327,21 @@ for structured data (default: table)",
                 "title": "Get Tool Info",
                 "description": "Get information about the BLASTp tool",
                 "inputSchema": {"type": "object", "properties": {}, "required": []},
+            },
+            {
+                "name": "download_blast_database",
+                "title": "Download BLAST Database",
+                "description": "Download and update a BLAST database",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {
+                        "db": {
+                            "type": "string",
+                            "description": "BLAST database name to download (e.g., 'mito', 'nr', 'pdbaa')",
+                        },
+                    },
+                    "required": ["db"],
+                },
             },
         ]
     }
@@ -383,6 +446,40 @@ BLASTp Tool Information:
 - Output Format: {tool_info.get('output_format', 'Unknown')}
 """
         return {"content": [{"type": "text", "text": info_text}]}
+
+    elif tool_name == "download_blast_database":
+        db_name = arguments.get("db")
+        if not db_name:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST, detail="Database name is required"
+            )
+
+        start_time = time.time()
+        try:
+            blastp_service.download_db(db_name)
+            processing_time = time.time() - start_time
+            
+            result_text = f"""
+BLAST Database Download Results:
+- Status: Success
+- Database: {db_name}
+- Processing Time: {round(processing_time, 2)}s
+- Message: Successfully downloaded and updated database '{db_name}'
+"""
+            return {"content": [{"type": "text", "text": result_text}]}
+        except Exception as e:
+            processing_time = time.time() - start_time
+            error_text = f"""
+BLAST Database Download Results:
+- Status: Error
+- Database: {db_name}
+- Processing Time: {round(processing_time, 2)}s
+- Error: {str(e)}
+"""
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=f"Failed to download database '{db_name}': {str(e)}",
+            )
 
     else:
         raise HTTPException(

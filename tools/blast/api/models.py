@@ -178,3 +178,19 @@ class ErrorResponse(BaseModel):
     error: str
     message: str
     timestamp: datetime
+
+
+class DownloadDBRequest(BaseModel):
+    """Request model for downloading BLAST database"""
+
+    db: str = Field(..., description="BLAST database name to download")
+
+
+class DownloadDBResponse(BaseModel):
+    """Response model for database download operation"""
+
+    status: str
+    message: str
+    db_name: str
+    processing_time: float
+    timestamp: datetime
