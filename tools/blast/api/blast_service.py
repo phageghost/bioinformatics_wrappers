@@ -144,10 +144,6 @@ is writable."
 
     def download_db(self, db_name: str):
         """Download and update BLAST database"""
-        if not self.auto_update:
-            self.logger.info("AUTO_UPDATE is false, will not auto update databases")
-            return
-
         cmd = self._prefix_mm_env(
             ["update_blastdb.pl", "--passive", "--decompress", db_name]
         )
@@ -223,8 +219,8 @@ is writable."
         self.logger.info("DB path: %s", db_fpath)
         self.logger.info("Output format: %s", output_format)
 
-        if db_name not in self.checked_dbs:
-            self.logger.info("New db %s requested, running update_blastdb.pl", db_name)
+        if db_name not in self.checked_dbs and self.auto_update:
+            self.logger.info("Unseen db %s requested, running update_blastdb.pl", db_name)
             self.download_db(db_name)
             self.checked_dbs.add(db_name)
 
