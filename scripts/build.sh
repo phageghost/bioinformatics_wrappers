@@ -207,14 +207,46 @@ build_tool() {
     
     # Build command based on platform
     if [[ "$platform" == "multi" ]]; then
-        print_status "Building multi-arch image for $tool_name version $final_version"
+        print_status "Building multi-arch images for $tool_name version $final_version"
+        
+        # Build AMD64 version
+        print_status "Building AMD64 version..."
         docker buildx build \
-            --platform linux/amd64,linux/arm64 \
-            -t "${tool_name}-api:${final_version}" \
-            -t "${tool_name}-api:latest" \
+            --platform linux/amd64 \
+            -t "${tool_name}-api:${final_version}-amd64" \
             $cache_opts \
             --load \
             "./tools/$tool_name"
+        
+        # Build ARM64 version
+        print_status "Building ARM64 version..."
+        docker buildx build \
+            --platform linux/arm64 \
+            -t "${tool_name}-api:${final_version}-arm64" \
+            $cache_opts \
+            --load \
+            "./tools/$tool_name"
+        
+        # Create multi-arch manifest (latest tag)
+        print_status "Creating multi-arch manifest..."
+        docker manifest create --insecure "${tool_name}-api:${final_version}" \
+            "${tool_name}-api:${final_version}-amd64" \
+            "${tool_name}-api:${final_version}-arm64" 2>/dev/null || true
+        
+        docker manifest create --insecure "${tool_name}-api:latest" \
+            "${tool_name}-api:${final_version}-amd64" \
+            "${tool_name}-api:${final_version}-arm64" 2>/dev/null || true
+        
+        # Tag the native architecture as latest for local use
+        local native_arch=$(uname -m)
+        if [[ "$native_arch" == "x86_64" ]]; then
+            docker tag "${tool_name}-api:${final_version}-amd64" "${tool_name}-api:latest"
+            print_status "Tagged AMD64 image as latest (native architecture)"
+        elif [[ "$native_arch" == "arm64" ]]; then
+            docker tag "${tool_name}-api:${final_version}-arm64" "${tool_name}-api:latest"
+            print_status "Tagged ARM64 image as latest (native architecture)"
+        fi
+        
     else
         print_status "Building $platform image for $tool_name version $final_version"
         docker buildx build \
