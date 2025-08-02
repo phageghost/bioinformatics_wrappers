@@ -53,11 +53,11 @@ Where:
 ```
 
 ### 3. Prediction/Analysis
-**Endpoint:** `POST /api/v1/{tool_name}/predict` (or `/analyze`, `/run`, etc.)
+**Endpoint:** `POST /api/v1/{tool_name}/predict` (or `/analyze`, `/run`, `/search`, etc.)
 
 **Purpose:** Execute the main functionality of the tool
 
-**Request:** File upload via multipart/form-data
+**Request:** File upload via multipart/form-data or JSON payload
 
 **Response:**
 ```json
@@ -70,6 +70,28 @@ Where:
   "timestamp": "2024-01-15T10:30:00"
 }
 ```
+
+### 4. Resource Management (Optional)
+**Endpoint:** `POST /api/v1/{tool_name}/download_db` (or `/update`, `/install`, etc.)
+
+**Purpose:** Download, update, or manage tool resources (databases, models, etc.)
+
+**Request:** JSON payload with resource parameters
+
+**Response:**
+```json
+{
+  "status": "success",
+  "message": "Successfully downloaded database 'mito'",
+  "db_name": "mito",
+  "processing_time": 45.2,
+  "timestamp": "2024-01-15T10:30:00"
+}
+```
+
+**Example Implementation:**
+- BLAST tool: `POST /api/v1/blastp/download_db` for database downloads
+- SPIDER tool: Could implement `POST /api/v1/spider/update_model` for model updates
 
 ## Response Models
 
@@ -163,7 +185,27 @@ Include in logs:
 ### Environment Variables
 - `TOOL_HOME`: Path to tool installation
 - `PYTHONPATH`: Python path for imports
+- `AUTO_UPDATE`: Enable automatic resource updates (true/false)
 - Tool-specific configuration variables
+
+### Auto-Update Features
+Tools that require external resources (databases, models, etc.) should support automatic updates:
+
+**Implementation Guidelines:**
+- Use `AUTO_UPDATE` environment variable to control behavior
+- Download resources on first use when auto-update is enabled
+- Cache downloaded resources to avoid repeated downloads
+- Provide manual download endpoints for explicit control
+- Log all download and update activities
+- Handle download failures gracefully with clear error messages
+
+**Example Environment Configuration:**
+```yaml
+environment:
+  - AUTO_UPDATE=true
+  - BLAST_DB_PATH=/blast_db
+  - TOOL_HOME=/app/tool_name
+```
 
 ### Health Checks
 ```dockerfile
@@ -271,6 +313,9 @@ When implementing a new tool wrapper, ensure:
 - [ ] Documentation is complete
 - [ ] Logging is implemented
 - [ ] Security considerations are addressed
+- [ ] Auto-update features are implemented (if applicable)
+- [ ] Resource management endpoints are provided (if applicable)
+- [ ] MCP-like endpoints are implemented for AI agent integration
 
 ## Example Implementation
 

@@ -45,14 +45,19 @@ bioinformatics_wrappers/
 * **Output**: Druggability prediction for the sequence, expressed as a float in the range 0-1
 
 ### BLAST (Basic Local Alignment Search Tool)
-* **Description**: Protein sequence similarity search against BLAST databases
+* **Description**: Protein sequence similarity search against BLAST databases with automatic database management
 * **Source**: NCBI BLAST+ suite
-* **Port**: User-specified (defaults to 8000)
+* **Port**: User-specified (defaults to 8001)
 * **Protocols**: REST API + MCP-like endpoints
 * **Input**: Protein sequence in FASTA format
 * **Output**: 
   - **Table format** (default): Formatted text report with ranked hits
   - **JSON format**: Structured data with individual hit details including identity, e-value, bitscore, and organism information
+* **Features**:
+  - Automatic database download and updates
+  - Manual database management via API
+  - Support for multiple BLAST databases (nr, pdbaa, mito, etc.)
+  - Configurable auto-update behavior
 
 ## ⚡ Quick Start
 
@@ -330,6 +335,70 @@ curl -X POST http://localhost:8000/mcp/call \
     }
   }'
 ```
+
+### BLAST Database Management
+
+The BLAST API includes advanced database management features for automatic updates and manual database downloads.
+
+#### Auto-Update Feature
+The BLAST service automatically downloads and updates databases on first use when the `AUTO_UPDATE` environment variable is set to `true`:
+
+```bash
+# Enable auto-update (default behavior)
+docker run -e AUTO_UPDATE=true -e BLAST_DB_PATH=/blast_db -v ./blast_databases:/blast_db blast-api:latest
+
+# Disable auto-update
+docker run -e AUTO_UPDATE=false -e BLAST_DB_PATH=/blast_db -v ./blast_databases:/blast_db blast-api:latest
+```
+
+**How it works:**
+- When a search is performed with a new database name, the service automatically downloads it
+- Databases are cached and reused for subsequent searches
+- Only downloads each database once per container instance
+
+#### Manual Database Download (REST API)
+```bash
+# Download a specific database
+curl -X POST "http://localhost:8001/api/v1/blastp/download_db" \
+  -H "Content-Type: application/json" \
+  -d '{"db": "mito"}'
+
+# Response:
+{
+  "status": "success",
+  "message": "Successfully downloaded database 'mito'",
+  "db_name": "mito",
+  "processing_time": 45.2,
+  "timestamp": "2024-01-15T10:30:00"
+}
+```
+
+#### Manual Database Download (MCP API)
+```bash
+# Download database via MCP endpoint
+curl -X POST http://localhost:8001/mcp/call \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "download_blast_database",
+    "arguments": {
+      "db": "mito"
+    }
+  }'
+```
+
+#### Available BLAST Databases
+Common database names include:
+- `nr` - Non-redundant protein sequences (large, ~200GB)
+- `pdbaa` - PDB protein sequences (smaller, good for testing)
+- `mito` - Mitochondrial protein sequences
+- `swissprot` - Swiss-Prot protein sequences
+- `refseq_protein` - RefSeq protein sequences
+
+**Database Selection Tips:**
+- Use `pdbaa` for quick testing and development
+- Use `mito` for mitochondrial protein analysis
+- Use `nr` for comprehensive searches (requires significant disk space)
+- Check available databases at: https://ftp.ncbi.nlm.nih.gov/blast/db/
 
 ## 📊 Output Formats
 

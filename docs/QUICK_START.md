@@ -29,6 +29,11 @@ docker-compose up -d
 
 # Or start just SPIDER
 docker-compose up -d spider
+
+# Or start just BLAST (requires database setup)
+export BLAST_DB_PATH=./blast_databases
+mkdir -p $BLAST_DB_PATH
+docker-compose up -d blast
 ```
 
 ### Option B: Individual Docker Build
@@ -74,6 +79,11 @@ curl http://localhost:8000/api/v1/spider/info
 curl -X POST "http://localhost:8000/api/v1/spider/predict" \
   -H "Content-Type: multipart/form-data" \
   -F "file=@tools/spider/test_data/sample_proteins.fasta"
+
+# Test BLAST database download (if using BLAST service)
+curl -X POST "http://localhost:8001/api/v1/blastp/download_db" \
+  -H "Content-Type: application/json" \
+  -d '{"db": "mito"}'
 ```
 
 ## Step 5: View API Documentation

@@ -71,6 +71,7 @@ docker run -p 8001:8000 -v /absolute/path/to/blast_databases:/blast_db blast-api
 - `GET /api/v1/blastp/health` — Health check
 - `GET /api/v1/blastp/info` — Tool info
 - `POST /api/v1/blastp/search` — Run a BLASTp search
+- `POST /api/v1/blastp/download_db` — Download and update BLAST database
 
 ### Search Parameters
 - `sequence` (str, required): Protein sequence (FASTA or raw)
@@ -106,6 +107,13 @@ curl -X POST "http://localhost:8001/api/v1/blastp/search" \
 curl http://localhost:8001/api/v1/blastp/health
 ```
 
+### Example: Download Database
+```bash
+curl -X POST "http://localhost:8001/api/v1/blastp/download_db" \
+  -H "Content-Type: application/json" \
+  -d '{"db": "mito"}'
+```
+
 ---
 
 ## 🤖 MCP API Usage
@@ -128,6 +136,77 @@ curl -X POST http://localhost:8001/mcp/call \
     }
   }'
 ```
+
+### Example: Download Database via MCP
+```bash
+curl -X POST http://localhost:8001/mcp/call \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "download_blast_database",
+    "arguments": {
+      "db": "mito"
+    }
+  }'
+```
+
+---
+
+## 🗄️ Database Management
+
+### Auto-Update Feature
+The BLAST service automatically downloads and updates databases on first use when the `AUTO_UPDATE` environment variable is set to `true` (default behavior).
+
+**How it works:**
+- When a search is performed with a new database name, the service automatically downloads it
+- Databases are cached and reused for subsequent searches
+- Only downloads each database once per container instance
+
+**Configuration:**
+```bash
+# Enable auto-update (default)
+docker run -e AUTO_UPDATE=true -e BLAST_DB_PATH=/blast_db -v ./blast_databases:/blast_db blast-api:latest
+
+# Disable auto-update
+docker run -e AUTO_UPDATE=false -e BLAST_DB_PATH=/blast_db -v ./blast_databases:/blast_db blast-api:latest
+```
+
+### Manual Database Management
+You can manually download and update databases using the API endpoints:
+
+**REST API:**
+```bash
+# Download a specific database
+curl -X POST "http://localhost:8001/api/v1/blastp/download_db" \
+  -H "Content-Type: application/json" \
+  -d '{"db": "mito"}'
+```
+
+**MCP API:**
+```bash
+# Download database via MCP endpoint
+curl -X POST http://localhost:8001/mcp/call \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "download_blast_database",
+    "arguments": {
+      "db": "mito"
+    }
+  }'
+```
+
+### Available Databases
+Common BLAST database names:
+- `nr` - Non-redundant protein sequences (large, ~200GB)
+- `pdbaa` - PDB protein sequences (smaller, good for testing)
+- `mito` - Mitochondrial protein sequences
+- `swissprot` - Swiss-Prot protein sequences
+- `refseq_protein` - RefSeq protein sequences
+
+**Database Selection Tips:**
+- Use `pdbaa` for quick testing and development
+- Use `mito` for mitochondrial protein analysis
+- Use `nr` for comprehensive searches (requires significant disk space)
+- Check available databases at: https://ftp.ncbi.nlm.nih.gov/blast/db/
 
 ---
 
