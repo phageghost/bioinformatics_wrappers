@@ -41,7 +41,7 @@ DEFAULT_EVALUE = 1e-3
 DEFAULT_MAX_TARGET_SEQS = 20
 DEFAULT_OUTFMT = "6 qseqid sseqid pident length evalue bitscore sscinames"
 DEFAULT_HEADER = "rank\tid\tidentity%\talign_len\te-value\tbitscore\torganism"
-DEFAULT_BLAST_DB_NAME = "nr"
+DEFAULT_BLAST_DB_NAME = os.getenv("DEFAULT_BLAST_DB", "swissprot")
 
 
 class BLASTpService:

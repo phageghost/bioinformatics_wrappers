@@ -42,11 +42,12 @@ COPY VERSION .
 RUN mkdir -p /app/blast_output
 
 # Set environment variables
-ENV BLAST_DB_PATH=/blast_db
 ENV PYTHONPATH=/app
 ENV VERSION=${VERSION}
 ENV PORT=8000
-ENV AUTO_UPDATE=false
+ENV BLAST_DB_PATH=/blast_db
+ENV DEFAULT_BLAST_DB=swissprot
+ENV AUTO_UPDATE=true
 
 # Add labels for better image management
 LABEL org.opencontainers.image.title="BLAST API"

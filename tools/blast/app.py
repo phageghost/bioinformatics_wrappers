@@ -118,7 +118,8 @@ except ImportError:
     from api.blast_service import BLASTpService
 
 
-version = open("VERSION", "r", encoding="utf-8").read().strip()
+DEFAULT_BLAST_DB = os.getenv("DEFAULT_BLAST_DB", "swissprot")
+VERSION = open("VERSION", "r", encoding="utf-8").read().strip()
 
 
 # Initialize BLASTp service
@@ -142,7 +143,7 @@ except ValueError as e:
 app = FastAPI(
     title="BLASTp API",
     description="RESTful API wrapper for BLASTp: Basic Local Alignment Search Tool",
-    version=version,
+    version=VERSION,
     docs_url="/docs",
     redoc_url="/redoc",
 )
@@ -162,7 +163,7 @@ async def root():
     """Root endpoint with API information"""
     return {
         "message": "BLASTp API - Bioinformatics Tool Wrapper",
-        "version": version,
+        "version": VERSION,
         "docs": "/docs",
         "health": "/api/v1/blastp/health",
     }
@@ -172,7 +173,7 @@ async def root():
 async def health_check():
     """Health check endpoint"""
     return HealthResponse(
-        status="healthy", timestamp=datetime.now(), tool="BLASTp", version=version
+        status="healthy", timestamp=datetime.now(), tool="BLASTp", version=VERSION
     )
 
 
@@ -292,8 +293,8 @@ async def list_mcp_tools():
                         },
                         "db_name": {
                             "type": "string",
-                            "description": "BLAST database name (default: nr)",
-                            "default": "nr",
+                            "description": f"BLAST database name (default: {DEFAULT_BLAST_DB})",
+                            "default": f"{DEFAULT_BLAST_DB}",
                         },
                         "evalue": {
                             "type": "number",
@@ -361,7 +362,7 @@ async def call_mcp_tool(request: dict):
             )
 
         # Get all parameters with defaults
-        db_name = arguments.get("db_name", "nr")
+        db_name = arguments.get("db_name", DEFAULT_BLAST_DB)
         evalue = arguments.get("evalue", 1e-3)
         max_target_seqs = arguments.get("max_target_seqs", 20)
         outfmt = arguments.get(
