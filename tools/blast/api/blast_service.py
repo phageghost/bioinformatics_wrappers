@@ -42,6 +42,7 @@ DEFAULT_MAX_TARGET_SEQS = 20
 DEFAULT_OUTFMT = "6 qseqid sseqid pident length evalue bitscore sscinames"
 DEFAULT_HEADER = "rank\tid\tidentity%\talign_len\te-value\tbitscore\torganism"
 DEFAULT_BLAST_DB_NAME = os.getenv("DEFAULT_BLAST_DB", "swissprot")
+AUTO_UPDATE_ENV = os.environ.get("AUTO_UPDATE", 'false').lower() == "true"
 
 
 class BLASTpService:
@@ -99,8 +100,8 @@ is writable."
         self.checked_dbs = set()
         self.mm_env = mm_env or os.environ.get("BLAST_MM_ENV", "blast")
         self.logger.info("mm_env: %s", self.mm_env)
-        auto_update_env = os.environ.get("AUTO_UPDATE")
-        if auto_update_env.lower() == "true":
+        
+        if AUTO_UPDATE_ENV:
             self.logger.info("AUTO_UPDATE is true, will auto update databases")
             self.auto_update = True
         else:
@@ -172,6 +173,27 @@ is writable."
             )
             self.logger.error(error_msg)
             raise RuntimeError(error_msg) from e
+        
+    def run_blastp_search_from_sequence(self, sequence: str, database: str = DEFAULT_BLAST_DB_NAME  , 
+                               evalue: float = DEFAULT_EVALUE, max_target_seqs: int = DEFAULT_MAX_TARGET_SEQS, 
+                               outfmt: int = DEFAULT_OUTFMT) -> BLASTpResult:
+        """Run a BLASTp search using a protein sequence"""
+        import tempfile
+        
+        # Create temporary FASTA file
+        with tempfile.NamedTemporaryFile(mode='w', suffix='.fasta', delete=False) as temp_file:
+            temp_file.write(f">sequence\n{sequence}\n")
+            temp_file.flush()
+            
+            return self.run_blastp_search(
+                    fasta_fpath=temp_file.name,
+                    db_name=database,
+                    evalue=evalue,
+                    max_target_seqs=max_target_seqs,
+                    outfmt=outfmt,
+                    output_format="table"
+            )
+
 
     def run_blastp_search(
         self,
@@ -371,3 +393,39 @@ is writable."
 database of protein sequences to search for similar sequences in a query protein sequence.",
             "input_format": "FASTA",
         }
+
+    def search_protein_sequence(self, sequence: str, database: str = "swissprot", 
+                               evalue: float = 1e-3, max_target_seqs: int = 20, 
+                               outfmt: int = 6) -> str:
+        """Search a protein sequence against a BLAST database"""
+        import tempfile
+        
+        # Create temporary FASTA file
+        with tempfile.NamedTemporaryFile(mode='w', suffix='.fasta', delete=False) as temp_file:
+            temp_file.write(f">sequence\n{sequence}\n")
+            temp_file.flush()
+            
+            try:
+                # Run BLASTp search
+                success, message, result = self.run_blastp_search(
+                    fasta_fpath=temp_file.name,
+                    db_name=database,
+                    evalue=evalue,
+                    max_target_seqs=max_target_seqs,
+                    outfmt=str(outfmt),
+                    output_format="table"
+                )
+                
+                if success:
+                    if hasattr(result, 'report'):
+                        return result.report
+                    else:
+                        return str(result)
+                else:
+                    return f"Error: {message}"
+                    
+            finally:
+                # Clean up temp file
+                import os
+                if os.path.exists(temp_file.name):
+                    os.unlink(temp_file.name)
