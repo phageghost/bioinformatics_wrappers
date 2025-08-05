@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Test script for MCP BLASTp client using streamable HTTP
+Test script for FastMCP BLASTp HTTP API client (LangFlow compatible)
 """
 
 import argparse
@@ -16,77 +16,49 @@ logger = logging.getLogger(__name__)
 
 
 def list_mcp_tools(host: str, port: int) -> Dict[str, Any]:
-    """List available MCP tools"""
-    # FastMCP typically uses these endpoints
-    urls_to_try = [
-        f"http://{host}:{port}/tools/list",
-        f"http://{host}:{port}/tools",
-        f"http://{host}:{port}/mcp/tools",
-        f"http://{host}:{port}/"
-    ]
+    """List available MCP tools using FastMCP HTTP API"""
+    url = f"http://{host}:{port}/tools"
     
-    for url in urls_to_try:
-        try:
-            logger.info(f"Trying to list MCP tools: {url}")
-            headers = {"Accept": "application/json"}
-            response = requests.get(url, headers=headers, timeout=5)
-            if response.status_code == 200:
-                logger.info(f"Success with endpoint: {url}")
-                return response.json()
-        except requests.exceptions.RequestException as e:
-            logger.warning(f"Failed with {url}: {e}")
-            continue
-    
-    return {"error": "Could not find working endpoint"}
+    try:
+        logger.info(f"Listing MCP tools: {url}")
+        headers = {"Accept": "application/json"}
+        response = requests.get(url, headers=headers, timeout=5)
+        if response.status_code == 200:
+            logger.info(f"Success with endpoint: {url}")
+            return response.json()
+        else:
+            logger.error(f"HTTP {response.status_code}: {response.text}")
+            return {"error": f"HTTP {response.status_code}: {response.text}"}
+    except requests.exceptions.RequestException as e:
+        logger.error(f"Request failed: {e}")
+        return {"error": f"Request failed: {e}"}
 
 
 def call_mcp_tool(host: str, port: int, tool_name: str, arguments: Dict[str, Any]) -> Dict[str, Any]:
-    """Call an MCP tool via HTTP"""
-    # FastMCP typically uses these endpoints
-    urls_to_try = [
-        f"http://{host}:{port}/tools/call",
-        f"http://{host}:{port}/mcp/call",
-        f"http://{host}:{port}/call"
-    ]
+    """Call an MCP tool via FastMCP HTTP API"""
+    url = f"http://{host}:{port}/tools/{tool_name}"
     
-    payload = {
-        "name": tool_name,
-        "arguments": arguments
-    }
-    
-    for url in urls_to_try:
-        try:
-            logger.info(f"Trying to call MCP tool: {url} with payload: {payload}")
+    try:
+        logger.info(f"Calling MCP tool: {url} with arguments: {arguments}")
+        
+        headers = {"Content-Type": "application/json", "Accept": "application/json"}
+        response = requests.post(url, json=arguments, headers=headers, timeout=300)
+        
+        if response.status_code == 200:
+            logger.info(f"Success with endpoint: {url}")
+            logger.info(f"MCP tool response status: {response.status_code}")
+            return response.json()
+        else:
+            logger.error(f"HTTP {response.status_code}: {response.text}")
+            return {"error": f"HTTP {response.status_code}: {response.text}"}
             
-            headers = {"Content-Type": "application/json", "Accept": "application/json"}
-            response = requests.post(url, json=payload, headers=headers, stream=True, timeout=300)
-            if response.status_code == 200:
-                logger.info(f"Success with endpoint: {url}")
-                logger.info(f"MCP tool response status: {response.status_code}")
-                break
-        except requests.exceptions.RequestException as e:
-            logger.warning(f"Failed with {url}: {e}")
-            continue
-    else:
-        return {"error": "Could not find working call endpoint"}
-    
-    # Handle streaming response
-    result = {"content": []}
-    for line in response.iter_lines():
-        if line:
-            try:
-                chunk = json.loads(line.decode('utf-8'))
-                if "content" in chunk:
-                    result["content"].extend(chunk["content"])
-            except json.JSONDecodeError:
-                # Handle non-JSON chunks
-                result["content"].append({"type": "text", "text": line.decode('utf-8')})
-    
-    return result
+    except requests.exceptions.RequestException as e:
+        logger.error(f"Request failed: {e}")
+        return {"error": f"Request failed: {e}"}
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Test MCP BLASTp client")
+    parser = argparse.ArgumentParser(description="Test FastMCP BLASTp HTTP API client")
     parser.add_argument("--host", default="127.0.0.1", help="MCP server host (default: 127.0.0.1)")
     parser.add_argument("--port", type=int, default=8001, help="MCP server port (default: 8001)")
     parser.add_argument("--tool", default="blastp_search_flexible_db_tabular", help="MCP tool to test (default: blastp_search_flexible_db_tabular)")
@@ -98,7 +70,7 @@ def main():
     
     # Test parameters
     
-    logger.info(f"Testing MCP BLASTp client on {args.host}:{args.port}")
+    logger.info(f"Testing FastMCP HTTP API client on {args.host}:{args.port}")
     logger.info(f"Tool: {args.tool}")
     logger.info(f"Sequence: {args.sequence[:50]}...")
     logger.info(f"Database: {args.database}")
@@ -114,8 +86,11 @@ def main():
         sys.exit(1)
     
     logger.info("Available tools:")
-    for tool in tools_result.get("tools", []):
-        logger.info(f"  - {tool.get('name', 'unknown')}: {tool.get('description', 'No description')}")
+    if "tools" in tools_result:
+        for tool in tools_result["tools"]:
+            logger.info(f"  - {tool.get('name', 'unknown')}: {tool.get('description', 'No description')}")
+    else:
+        logger.info(f"Server response: {json.dumps(tools_result, indent=2)}")
     
     logger.info("-" * 60)
     
@@ -139,12 +114,7 @@ def main():
     
     logger.info("✅ MCP call successful!")
     logger.info("\nResults:")
-    
-    for content in result.get("content", []):
-        if content.get("type") == "text":
-            logger.info(content["text"])
-        else:
-            logger.info(json.dumps(content, indent=2))
+    logger.info(json.dumps(result, indent=2))
 
 
 if __name__ == "__main__":

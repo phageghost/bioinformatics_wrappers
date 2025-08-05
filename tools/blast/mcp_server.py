@@ -36,7 +36,7 @@ mcp = FastMCP(
 sequence against a specified NCBI BLAST database.",
 )
 
-@mcp.tool()
+@mcp.tool
 def blastp_search_flexible_db_tabular(
     sequence: str,
     database: str = "swissprot",
@@ -83,6 +83,7 @@ if __name__ == "__main__":
     
     args = parser.parse_args()
     
-    logger.info(f"Starting MCP BLASTp server on {args.host}:{args.port}")
-    mcp.run(transport='http', host=args.host, port=args.port)
+    logger.info(f"Starting FastMCP HTTP API server on {args.host}:{args.port}")
+    # Use streamable-http transport for LangFlow compatibility
+    mcp.run(transport='streamable-http', host=args.host, port=args.port)
 

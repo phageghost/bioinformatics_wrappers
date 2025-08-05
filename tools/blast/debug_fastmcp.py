@@ -10,7 +10,7 @@ def debug_server(host: str, port: int):
     """Debug what endpoints the FastMCP server exposes"""
     base_url = f"http://{host}:{port}"
     
-    # Try common endpoints
+    # Try common endpoints for FastMCP 2.0
     endpoints_to_try = [
         "/",
         "/health",
@@ -20,7 +20,9 @@ def debug_server(host: str, port: int):
         "/mcp/call",
         "/call",
         "/api/tools",
-        "/api/call"
+        "/api/call",
+        "/docs",
+        "/openapi.json"
     ]
     
     print(f"Debugging FastMCP server at {base_url}")
